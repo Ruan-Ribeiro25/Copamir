@@ -1,5 +1,5 @@
 services:
-  # SERVIÇO 1: BANCO DE DADOS (Intacto)
+  # SERVIÇO 1: BANCO DE DADOS
   db:
     image: mysql:8.0
     container_name: vidaplus-db
@@ -18,7 +18,7 @@ services:
         limits:
           memory: 2G
 
-  # SERVIÇO 2: SUA APLICAÇÃO (Intacto)
+  # SERVIÇO 2: SUA APLICAÇÃO
   app:
     build: ./app_code
     container_name: vidaplus-app
@@ -34,37 +34,36 @@ services:
       - DB_USER=root
       - DB_PASSWORD=admin
 
-  # SERVIÇO 3: O TÚNEL CLOUDFLARE (NOVO!)
+  # SERVIÇO 3: O TÚNEL CLOUDFLARE
   tunnel:
     image: cloudflare/cloudflared
     restart: always
     command: tunnel run
     environment:
-      # IMPORTANTE: Apague o texto abaixo e cole seu Token gigante
       - TUNNEL_TOKEN=eyJhIjoiYjQ1MTU1MjdjNjI2MmZiNzUzZTRhMmYxODEwMTk0ZjciLCJ0IjoiMzFkODBmN2QtZmM0OS00MzhmLWE1NGYtY2FjNjQ3ODQzYTQyIiwicyI6Ik5qYzJNMk0wTURjdE5UbG1OeTAwTXpRMUxXRTNZV1l0TldNNU1HSXpNR0ZtTkRSaiJ9
-	  
-	# --- MONITORAMENTO ---
+
+  # --- MONITORAMENTO ---
   prometheus:
-	image: prom/prometheus:latest
-	container_name: vidaplus-prometheus
-	volumes:
-	  - ./prometheus.yml:/etc/prometheus/prometheus.yml
-  	ports:
-	  - "9090:9090"
-  	command:
-	  - '--config.file=/etc/prometheus/prometheus.yml'
+    image: prom/prometheus:latest
+    container_name: vidaplus-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
 
   grafana:
-	image: grafana/grafana:latest
-	container_name: vidaplus-grafana
-	ports:
-	  - "3000:3000"
-	volumes:
-	  - grafana_data:/var/lib/grafana
-	environment:
-	  - GF_SECURITY_ADMIN_PASSWORD=admin
-	depends_on:
-	  - prometheus
-		  
+    image: grafana/grafana:latest
+    container_name: vidaplus-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
 volumes:
   grafana_data:
