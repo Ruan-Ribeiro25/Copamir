@@ -18,9 +18,9 @@ services:
         limits:
           memory: 2G
 
-  # SERVIÇO 2: SUA APLICAÇÃO
+  # SERVIÇO 2: SUA APLICAÇÃO (CORRIGIDO!)
   app:
-    build: ./app_code
+    build: .                 # <--- MUDAMOS DE ./app_code PARA .
     container_name: vidaplus-app
     restart: always
     ports:
