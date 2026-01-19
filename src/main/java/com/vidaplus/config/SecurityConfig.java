@@ -45,7 +45,7 @@ public class SecurityConfig {
                     "/register", "/register-professional", "/register-medico", "/register-admin",
                     "/verificar-conta", "/forgot-password", "/enter-code", 
                     "/verify-reset-code", "/update-password", "/perfil/selecionar-polo",
-                    "/acesso-profissional"
+                    "/acesso-profissional", "/bem-vindo" // <--- ADICIONADO AQUI
                 ).permitAll()
                 
                 // --- ROTAS PROTEGIDAS (Blindagem de Prefixo ROLE_) ---

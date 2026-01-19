@@ -6,11 +6,13 @@ import com.vidaplus.entity.Administrador;
 import com.vidaplus.repository.PoloRepository;
 import com.vidaplus.repository.UsuarioRepository;
 import com.vidaplus.repository.AdministradorRepository;
+import com.vidaplus.service.UsuarioService; // IMPORTANTE: Importando o Service
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.time.LocalDate;
@@ -22,6 +24,9 @@ public class RegisterController {
 
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private AdministradorRepository administradorRepository;
+    
+    // --- INJEÇÃO DO SERVICE (CORREÇÃO FUNDAMENTAL) ---
+    @Autowired private UsuarioService usuarioService;
     
     // --- INJEÇÕES PARA A LÓGICA DE POLOS E SEGURANÇA ---
     @Autowired private PoloRepository poloRepository;
@@ -38,7 +43,7 @@ public class RegisterController {
     }
 
     @PostMapping("/register")
-    public String registerUser(@ModelAttribute Usuario usuario, Model model) {
+    public String registerUser(@ModelAttribute Usuario usuario, Model model, RedirectAttributes redirectAttributes) {
         // 1. Validação de Duplicidade
         if (usuarioRepository.findByUsernameOrCpf(usuario.getUsername()) != null ||
             usuarioRepository.findByUsernameOrCpf(usuario.getCpf()) != null) {
@@ -47,16 +52,16 @@ public class RegisterController {
         }
 
         try {
-            // 2. Criptografia de Senha
-            usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
+            // NOTA: A criptografia de senha foi movida para o Service para centralizar a regra.
             
-            // 3. Definições Padrão
-            usuario.setAtivo(true);
+            // 2. Definições Padrão
+            // REMOVIDO: usuario.setAtivo(true); -> O Service agora define como FALSE.
+            
             if (usuario.getPerfil() == null || usuario.getPerfil().isEmpty()) {
                 usuario.setPerfil("PACIENTE"); // Perfil padrão se não especificado
             }
 
-            // 4. LÓGICA INTELIGENTE: VÍNCULO AUTOMÁTICO DE POLO
+            // 3. LÓGICA INTELIGENTE: VÍNCULO AUTOMÁTICO DE POLO
             // Cria ou recupera a estrutura Hospital (Cidade) > Clínica (Bairro)
             Polo clinicaVinculada = vincularPoloAutomatico(usuario);
             
@@ -69,10 +74,14 @@ public class RegisterController {
                 usuario.getPolos().add(clinicaVinculada);
             }
 
-            // 5. Salva o Usuário com todos os vínculos
-            usuarioRepository.save(usuario);
+            // 4. CHAMADA AO SERVICE (CORREÇÃO PRINCIPAL)
+            // Delega o salvamento, criptografia e envio de e-mail para o Service
+            usuarioService.cadastrar(usuario);
 
-            return "redirect:/login?success=true";
+            // 5. REDIRECIONAMENTO PARA TELA DE CÓDIGO
+            // Passamos o e-mail como parâmetro ou FlashAttribute para a tela de verificação saber quem validar
+            redirectAttributes.addFlashAttribute("mensagem", "Cadastro realizado! Verifique seu e-mail.");
+            return "redirect:/verificar-conta?email=" + usuario.getEmail();
             
         } catch (Exception e) {
             e.printStackTrace();

@@ -23,17 +23,20 @@ public class HomeController {
     @GetMapping("/home")
     public String home(Model model, Principal principal) {
         // 1. Verificação de Segurança
+        // Como a rota /home está liberada no SecurityConfig (permitAll),
+        // precisamos garantir manualmente que o usuário esteja logado para ver o painel.
         if (principal == null) return "redirect:/login";
 
         // 2. Carrega apenas o Usuário (para exibir "Olá, Nome")
         Usuario usuario = usuarioRepository.findByUsernameOrCpf(principal.getName());
+        
+        // Proteção extra caso o usuário não seja encontrado no banco
+        if (usuario == null) return "redirect:/login?error=user_sync";
+        
         model.addAttribute("usuario", usuario);
 
-        // OBS: Removemos os carregamentos de listas (Agendamentos, Prontuários, Triagem)
-        // pois a Home agora é apenas um Dashboard de ícones. 
-        // Esses dados agora são carregados exclusivamente em /pacientes.
-
-        // 3. Retorna a view correta (dentro da pasta pages)
+        // 3. Retorna a view correta
+        // CORREÇÃO: Apontando para "pages/home" pois o arquivo deve estar na subpasta 'pages'
         return "pages/home"; 
     }
 }

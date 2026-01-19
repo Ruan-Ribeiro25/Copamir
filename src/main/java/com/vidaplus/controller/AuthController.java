@@ -21,6 +21,7 @@ public class AuthController {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ProfissionalRepository profissionalRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    
     @Autowired private EmailService emailService; 
 
     // =================================================================================
@@ -35,28 +36,54 @@ public class AuthController {
         return "redirect:/acesso-profissional"; 
     }
 
-    // *** ATENÇÃO: AS ROTAS "/register" FORAM REMOVIDAS DAQUI ***
-    // Elas agora estão no RegisterController.java para suportar a criação automática de Polos.
+    // =================================================================================
+    // 2. RECUPERAÇÃO DE SENHA E VERIFICAÇÃO (CRÍTICO PARA O CADASTRO)
+    // =================================================================================
 
+    @GetMapping("/verificar-conta")
+    public String verificarConta(@RequestParam(required = false) String email, Model model) {
+        // Passamos o e-mail para a view saber quem estamos esperando
+        if (email != null) {
+            model.addAttribute("email", email);
+        }
+        return "verificar-conta"; 
+    }
+
+    @PostMapping("/verificar-conta")
+    public String processarVerificacao(@RequestParam("codigo") String codigo, Model model) {
+        Usuario usuario = usuarioRepository.findByCodigoVerificacao(codigo);
+        
+        if (usuario != null) {
+            // Ativa o usuário
+            usuario.setAtivo(true);
+            // Limpa o código para evitar reuso
+            usuario.setCodigoVerificacao(null);
+            usuarioRepository.save(usuario);
+            
+            // ATUALIZAÇÃO: Redireciona para a tela de Boas-Vindas
+            return "redirect:/bem-vindo";
+        }
+        
+        // Se errou o código, volta para a tela com erro
+        return "redirect:/verificar-conta?error=true";
+    }
+
+    // NOVO: Endpoint para renderizar a tela de boas-vindas
+    @GetMapping("/bem-vindo")
+    public String welcome() {
+        return "welcome";
+    }
+    
     // =================================================================================
-    // 2. CADASTRO PROFISSIONAL (UPGRADE DE CONTA EXISTENTE)
+    // 3. REGISTRO DE PROFISSIONAL (UPGRADE DE CONTA)
     // =================================================================================
-    // Este método continua aqui pois exige que o usuário JÁ esteja logado/existente
     
     @GetMapping("/register-professional")
     public String registerProfessionalForm(Model model, Principal principal) {
-        if (principal == null) {
-            return "redirect:/login"; 
-        }
-
+        if (principal == null) return "redirect:/login"; 
         Usuario usuarioLogado = usuarioRepository.findByUsernameOrCpf(principal.getName());
-        
-        if (usuarioLogado == null) {
-             return "redirect:/login?error=user_not_found";
-        }
-
+        if (usuarioLogado == null) return "redirect:/login?error=user_not_found";
         model.addAttribute("usuario", usuarioLogado);
-        
         return "register-professional"; 
     }
 
@@ -66,27 +93,21 @@ public class AuthController {
                                              @RequestParam String registroConselho, 
                                              @RequestParam String matricula,
                                              @RequestParam LocalDate dataMatricula,
-                                             @RequestParam String especialidade,
-                                             Model model) {
-        
+                                             @RequestParam String especialidade) {
         if (principal == null) return "redirect:/login";
-
         Usuario usuarioExistente = usuarioRepository.findByUsernameOrCpf(principal.getName());
 
-        // Atualiza o perfil no usuário base
         usuarioExistente.setPerfil(tipoProfissional);
         usuarioRepository.save(usuarioExistente);
 
-        // Cria o registro profissional vinculado
         Profissional prof = new Profissional();
         prof.setUsuario(usuarioExistente);
         prof.setTipoProfissional(tipoProfissional);
         prof.setMatricula(matricula);
         prof.setDataMatricula(dataMatricula);
         prof.setEspecialidade(especialidade);
-        prof.setStatusAprovacao("PENDENTE"); // Define status padrão
+        prof.setStatusAprovacao("PENDENTE");
 
-        // Define se é CRM ou COREN baseado no tipo
         if (tipoProfissional != null && tipoProfissional.toUpperCase().contains("MEDICO")) {
             prof.setCrm(registroConselho);
         } else {
@@ -94,29 +115,13 @@ public class AuthController {
         }
 
         profissionalRepository.save(prof);
-
         return "redirect:/acesso-profissional?upgrade=success";
     }
 
     // =================================================================================
-    // 3. RECUPERAÇÃO DE SENHA E VERIFICAÇÃO (MANTIDOS ORIGINALMENTE)
+    // 4. ESQUECI MINHA SENHA
     // =================================================================================
 
-    @GetMapping("/verificar-conta")
-    public String verificarConta() { return "verificar-conta"; }
-
-    @PostMapping("/verificar-conta")
-    public String processarVerificacao(@RequestParam("codigo") String codigo, Model model) {
-        Usuario usuario = usuarioRepository.findByCodigoVerificacao(codigo);
-        if (usuario != null) {
-            usuario.setAtivo(true);
-            usuario.setCodigoVerificacao(null);
-            usuarioRepository.save(usuario);
-            return "redirect:/login?ativado=true";
-        }
-        return "redirect:/verificar-conta?error=true";
-    }
-    
     @GetMapping("/forgot-password")
     public String forgotPassword() { return "forgot-password"; }
 
@@ -138,7 +143,7 @@ public class AuthController {
     public String enterCode() { return "enter-code"; }
     
     @PostMapping("/verify-reset-code")
-    public String verifyResetCode(@RequestParam String token, Model model) {
+    public String verifyResetCode(@RequestParam String token) {
         Usuario usuario = usuarioRepository.findByTokenReset(token);
         return (usuario != null) ? "redirect:/update-password?token=" + token : "redirect:/enter-code?error=invalid";
     }
@@ -150,7 +155,7 @@ public class AuthController {
     }
     
     @PostMapping("/update-password")
-    public String updatePasswordAction(@RequestParam String token, @RequestParam String senha, @RequestParam String confirmarSenha, Model model) {
+    public String updatePasswordAction(@RequestParam String token, @RequestParam String senha, @RequestParam String confirmarSenha) {
         Usuario usuario = usuarioRepository.findByTokenReset(token);
         if (usuario != null && senha.equals(confirmarSenha)) {
             usuario.setSenha(passwordEncoder.encode(senha));
