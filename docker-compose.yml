@@ -12,15 +12,15 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./mysql_data:/var/lib/mysql
+      - db_data:/var/lib/mysql   # <--- MUDANÇA AQUI: Usando volume nomeado
     deploy:
       resources:
         limits:
           memory: 2G
 
-  # SERVIÇO 2: SUA APLICAÇÃO (CORRIGIDO!)
+  # SERVIÇO 2: SUA APLICAÇÃO
   app:
-    build: .                 # <--- MUDAMOS DE ./app_code PARA .
+    build: .
     container_name: vidaplus-app
     restart: always
     ports:
@@ -65,5 +65,7 @@ services:
     depends_on:
       - prometheus
 
+# --- DEFINIÇÃO DOS VOLUMES (NOVO BLOCO NO FIM DO ARQUIVO) ---
 volumes:
   grafana_data:
+  db_data:      # <--- CRIANDO O VOLUME AQUI
