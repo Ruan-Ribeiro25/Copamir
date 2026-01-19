@@ -40,3 +40,12 @@ mvnw.cmd
 .project 
 .settings/ 
 *.zip 
+
+### eclipse ###
+mysql_data
+.git
+.github
+target
+*.log
+.DS_Store
+help.md
