@@ -1,4 +1,4 @@
-name: Deploy Automático no ThinkPad
+name: Deploy VidaPlus no ThinkPad
 
 on:
   push:
@@ -6,21 +6,20 @@ on:
 
 jobs:
   deploy:
+    # A MÁGICA É AQUI: 'self-hosted' manda rodar dentro do seu PC
     runs-on: self-hosted
-    steps:
-      - name: Baixar Código Novo
-        uses: actions/checkout@v3
 
-      - name: Atualizar Aplicação
-        run: |
-          # 1. Entra na pasta do projeto no ThinkPad
-          cd /home/globaloficio/vidaplus-server
-          
-          # 2. Garante que temos a versão mais recente do código
-          # (O git stash garante que mudanças locais não bloqueiem o pull)
-          git stash
-          git pull origin main
-          
-          # 3. Reconstrói e sobe os containers
-          # O --build garante que o Java seja recompilado com o código novo
-          docker compose up -d --build
+    steps:
+    - name: Baixando código mais recente
+      uses: actions/checkout@v3
+
+    - name: Derrubando containers antigos
+      # O comando '|| true' serve para não dar erro se o container não existir
+      run: sudo docker compose down || true
+
+    - name: Subindo nova versão (Rebuild)
+      # O --build garante que ele pegue as mudanças do Java
+      run: sudo docker compose up -d --build
+
+    - name: Limpeza de imagens velhas
+      run: sudo docker image prune -f
