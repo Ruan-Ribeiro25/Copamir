@@ -35,6 +35,10 @@ public class SecurityConfig {
                 // Recursos estáticos liberados
                 .requestMatchers("/css/**", "/js/**", "/uploads/**", "/img/**", "/webjars/**", "/fragments/**").permitAll()
                 
+                // --- MONITORAMENTO (NOVO) ---
+                // Libera o Prometheus para ler as métricas sem precisar de login
+                .requestMatchers("/actuator/**").permitAll()
+
                 // Páginas públicas liberadas
                 .requestMatchers(
                     "/", "/home", "/login", "/login-professional", "/admin/login",
