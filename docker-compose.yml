@@ -1,10 +1,9 @@
 version: '3.8'
 
 services:
-  # SERVIÇO 1: BANCO DE DADOS
+  # 1. BANCO DE DADOS
   db:
     image: mysql:8.0
-    # container_name removido para evitar erro de conflito no CI/CD
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: admin
@@ -14,28 +13,37 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      # Volume nomeado para persistência segura e sem erro de permissão
       - db_data:/var/lib/mysql
     deploy:
       resources:
         limits:
           memory: 2G
+    # O truque: cria um apelido para o banco também, por segurança
+    networks:
+      default:
+        aliases:
+          - vidaplus-db
 
-  # SERVIÇO 2: APLICAÇÃO (BACKEND)
+  # 2. BACKEND (AQUI ESTÁ A CORREÇÃO DO SITE)
   app:
     build: .
-    # container_name removido para evitar erro de conflito no CI/CD
     restart: always
     ports:
       - "80:8080"
     depends_on:
       - db
     environment:
+      # O backend acessa o banco pelo nome do SERVIÇO 'db'
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/vidaplus_db?allowPublicKeyRetrieval=true&useSSL=false
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=admin
+    # O truque: dizemos ao Docker "Este container também atende por vidaplus-app"
+    networks:
+      default:
+        aliases:
+          - vidaplus-app
 
-  # SERVIÇO 3: O TÚNEL CLOUDFLARE
+  # 3. TÚNEL CLOUDFLARE
   tunnel:
     image: cloudflare/cloudflared
     restart: always
@@ -43,7 +51,7 @@ services:
     environment:
       - TUNNEL_TOKEN=eyJhIjoiYjQ1MTU1MjdjNjI2MmZiNzUzZTRhMmYxODEwMTk0ZjciLCJ0IjoiMzFkODBmN2QtZmM0OS00MzhmLWE1NGYtY2FjNjQ3ODQzYTQyIiwicyI6Ik5qYzJNMk0wTURjdE5UbG1OeTAwTXpRMUxXRTNZV1l0TldNNU1HSXpNR0ZtTkRSaiJ9
 
-  # SERVIÇO 4: PROMETHEUS (Monitoramento)
+  # 4. MONITORAMENTO
   prometheus:
     image: prom/prometheus
     restart: always
@@ -51,8 +59,12 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      default:
+        aliases:
+          - vidaplus-prometheus
 
-  # SERVIÇO 5: GRAFANA (Visualização)
+  # 5. DASHBOARD
   grafana:
     image: grafana/grafana
     restart: always
@@ -62,8 +74,11 @@ services:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
+    networks:
+      default:
+        aliases:
+          - vidaplus-grafana
 
-# DEFINIÇÃO DOS VOLUMES (Onde os dados ficam salvos de verdade)
 volumes:
   db_data:
   grafana_data:

@@ -1302,7 +1302,9 @@ body.page-telemedicina footer { z-index: 50; }
         display: flex !important;       /* Muda de Grid para Flex */
         flex-direction: column !important; /* Empilha verticalmente */
         width: 100% !important;
+        grid-template-columns: none !important;
         gap: 20px !important;
+        box-sizing: border-box !important;
     }
     
     /* Garante que o card de perfil ocupe a largura total */
@@ -1313,13 +1315,30 @@ body.page-telemedicina footer { z-index: 50; }
     
     /* Sobrescreve o estilo inline "display: flex" do título da página */
     .page-title {
-        flex-direction: column !important;
-        gap: 15px !important;
+        display: block !important;
         text-align: center !important;
+        padding-bottom: 15px !important;
+    }
+    
+    .page-title a {
+        display: inline-block !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* O elemento que estava "estourando" a largura era a tabela */
+    table {
+        min-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    /* Permite que apenas a div da tabela tenha scroll horizontal, sem quebrar a página toda */
+    .history-card > div[style*="overflow-x: auto"] {
+        width: 100% !important;
+        display: block !important;
     }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 480px) {
     .kpi-grid-pro { grid-template-columns: repeat(2, 1fr); } 
     .grid-refined { grid-template-columns: repeat(2, 1fr); }
     
@@ -1347,9 +1366,15 @@ body.page-telemedicina footer { z-index: 50; }
     .card-action p { font-size: 0.8rem; display: none; } 
 
     nav h1 { font-size: 1.4rem; }
-    .page-title { font-size: 1.5rem; text-align: center; }
+    
+    /* AQUI ESTAVA O PROBLEMA: REMOVIDO min-width: 500px */
+    table { min-width: 0 !important; }
     
     .history-card { padding: 15px; overflow-x: auto; }
-    table { max-width: 390px; }
     .section-header { flex-direction: column; gap: 15px; align-items: stretch; text-align: center; }
+    
+    /* Ajustes finais de padding */
+    .card-container, .profile-card, .history-card {
+        padding: 15px !important;
+    }
 }
