@@ -1,0 +1,28 @@
+/* ============================================================
+   ARQUIVO: home.css
+   DESCRIÇÃO: Dashboard principal
+   ============================================================ */
+
+.welcome-section {
+    background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 40px;
+    border-left: 6px solid var(--primary-color); display: flex; align-items: center;
+    justify-content: space-between; width: 100%; backdrop-filter: blur(5px);
+}
+.welcome-text h2 { margin: 0 0 10px 0; color: #2c3e50; text-align: left; }
+
+/* Grid de Cards */
+.dashboard-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 30px; width: 100%;
+}
+
+@media (max-width: 768px) {
+    .welcome-section { flex-direction: column; text-align: center; gap: 20px; }
+    .welcome-section i { display: none; }
+    .dashboard-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}

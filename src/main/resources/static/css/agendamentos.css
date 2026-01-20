@@ -1,0 +1,52 @@
+/* ============================================================
+   ARQUIVO: agendamentos.css
+   DESCRIÇÃO: Cards de agendamento e listas
+   ============================================================ */
+
+.agenda-grid { 
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+    gap: 25px; width: 100%; margin-top: 10px; 
+}
+
+.agenda-card { 
+    background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 25px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid #ccc; 
+    transition: transform 0.3s ease; 
+}
+.agenda-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+
+/* Cores de Status */
+.card-Agendado { border-left-color: #f1c40f; }
+.card-Concluído { border-left-color: #20c997; }
+.card-Cancelado { border-left-color: #e74c3c; }
+
+/* Detalhes do Card */
+.card-top { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
+.proc-info h3 { margin: 0 0 5px 0; color: #2c3e50; font-size: 1.1rem; }
+.proc-info p { margin: 0; color: #7f8c8d; font-size: 0.9rem; }
+.proc-info i { color: #20c997; margin-right: 5px; }
+
+.date-box { 
+    text-align: center; background: #f8f9fa; padding: 8px 15px; 
+    border-radius: 8px; color: #555; border: 1px solid #eee; 
+}
+.date-day { font-size: 1.4rem; font-weight: 800; display: block; color: #333; }
+.date-month { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+
+.card-bottom { 
+    border-top: 1px solid #f0f2f5; padding-top: 15px; margin-top: 15px; 
+    display: flex; justify-content: space-between; align-items: center; 
+}
+.time-badge { font-weight: bold; color: #555; display: flex; align-items: center; gap: 5px; }
+
+.status-pill { 
+    padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; 
+    font-weight: 800; text-transform: uppercase; 
+}
+.pill-Agendado { background: #fff3cd; color: #856404; }
+.pill-Concluído { background: #d4edda; color: #155724; }
+.pill-Cancelado { background: #f8d7da; color: #721c24; }
+
+@media (max-width: 480px) {
+    .agenda-grid { grid-template-columns: 1fr; }
+}
