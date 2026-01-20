@@ -1301,6 +1301,29 @@ body.page-telemedicina footer { z-index: 50; }
     
     /* Estoque Mobile */
     #modalProduto .modal-content { width: 90%; margin: 20% auto; }
+
+    /* =======================================================
+       FIX ESPECÍFICO PARA A PÁGINA PACIENTES.HTML NO MOBILE
+       ======================================================= */
+    .prontuario-container { 
+        /* Força layout em coluna única */
+        grid-template-columns: 1fr !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+    
+    .profile-card {
+        width: 100% !important;
+        margin-bottom: 20px;
+    }
+    
+    /* Sobrescreve o estilo inline "display: flex" do HTML */
+    .page-title {
+        flex-direction: column !important;
+        gap: 15px !important;
+        text-align: center !important;
+    }
 }
 
 @media (max-width: 480px) {
