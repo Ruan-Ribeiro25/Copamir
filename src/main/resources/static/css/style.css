@@ -1253,22 +1253,22 @@ body.page-telemedicina footer { z-index: 50; }
     .main-content { min-height: auto; }
 
     .kpi-grid-pro {
-        grid-template-columns: repeat(1, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
     }
 }
 
 @media (max-width: 768px) {
     /* MANTÉM TODAS AS REGRAS ANTERIORES E ADICIONA A CORREÇÃO DE PACIENTES */
     .kpi-grid-pro { 
-        grid-template-columns: repeat(1, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
         gap: 15px;
     }
     .grid-refined {
-        grid-template-columns: repeat(1, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
         gap: 15px;
     }
     .dashboard-grid { 
-        grid-template-columns: repeat(1, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
         gap: 15px; 
     }
 
@@ -1319,12 +1319,12 @@ body.page-telemedicina footer { z-index: 50; }
     }
 }
 
-@media (max-width: 480px) {
-    .kpi-grid-pro { grid-template-columns: repeat(1, 1fr); } 
-    .grid-refined { grid-template-columns: repeat(1, 1fr); }
+@media (max-width: 360px) {
+    .kpi-grid-pro { grid-template-columns: repeat(2, 1fr); } 
+    .grid-refined { grid-template-columns: repeat(2, 1fr); }
     
     .dashboard-grid { 
-        grid-template-columns: repeat(1, 1fr); 
+        grid-template-columns: repeat(2, 1fr); 
         gap: 10px; 
     }
 
@@ -1350,6 +1350,6 @@ body.page-telemedicina footer { z-index: 50; }
     .page-title { font-size: 1.5rem; text-align: center; }
     
     .history-card { padding: 15px; overflow-x: auto; }
-    table { min-width: 500px; }
+    table { max-width: 390px; }
     .section-header { flex-direction: column; gap: 15px; align-items: stretch; text-align: center; }
 }

@@ -1,8 +1,10 @@
+version: '3.8'
+
 services:
   # SERVIÇO 1: BANCO DE DADOS
   db:
     image: mysql:8.0
-    container_name: vidaplus-db
+    # container_name removido para evitar erro de conflito no CI/CD
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: admin
@@ -12,27 +14,26 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql   # <--- MUDANÇA AQUI: Usando volume nomeado
+      # Volume nomeado para persistência segura e sem erro de permissão
+      - db_data:/var/lib/mysql
     deploy:
       resources:
         limits:
           memory: 2G
 
-  # SERVIÇO 2: SUA APLICAÇÃO
+  # SERVIÇO 2: APLICAÇÃO (BACKEND)
   app:
     build: .
-    container_name: vidaplus-app
+    # container_name removido para evitar erro de conflito no CI/CD
     restart: always
     ports:
       - "80:8080"
     depends_on:
       - db
     environment:
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_NAME=vidaplus_db
-      - DB_USER=root
-      - DB_PASSWORD=admin
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/vidaplus_db?allowPublicKeyRetrieval=true&useSSL=false
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=admin
 
   # SERVIÇO 3: O TÚNEL CLOUDFLARE
   tunnel:
@@ -42,30 +43,27 @@ services:
     environment:
       - TUNNEL_TOKEN=eyJhIjoiYjQ1MTU1MjdjNjI2MmZiNzUzZTRhMmYxODEwMTk0ZjciLCJ0IjoiMzFkODBmN2QtZmM0OS00MzhmLWE1NGYtY2FjNjQ3ODQzYTQyIiwicyI6Ik5qYzJNMk0wTURjdE5UbG1OeTAwTXpRMUxXRTNZV1l0TldNNU1HSXpNR0ZtTkRSaiJ9
 
-  # --- MONITORAMENTO ---
+  # SERVIÇO 4: PROMETHEUS (Monitoramento)
   prometheus:
-    image: prom/prometheus:latest
-    container_name: vidaplus-prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    image: prom/prometheus
+    restart: always
     ports:
       - "9090:9090"
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
+  # SERVIÇO 5: GRAFANA (Visualização)
   grafana:
-    image: grafana/grafana:latest
-    container_name: vidaplus-grafana
+    image: grafana/grafana
+    restart: always
     ports:
       - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
 
-# --- DEFINIÇÃO DOS VOLUMES (NOVO BLOCO NO FIM DO ARQUIVO) ---
+# DEFINIÇÃO DOS VOLUMES (Onde os dados ficam salvos de verdade)
 volumes:
+  db_data:
   grafana_data:
-  db_data:      # <--- CRIANDO O VOLUME AQUI
