@@ -32,15 +32,22 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                // --- RECURSOS PWA E ESTÁTICOS (ATUALIZADO AQUI) ---
-                // Adicionamos /manifest.json e /sw.js para permitir a instalação do App
-                .requestMatchers("/css/**", "/js/**", "/uploads/**", "/img/**", "/webjars/**", "/fragments/**", "/manifest.json", "/sw.js").permitAll()
+                // --- CORREÇÃO AQUI: Adicionado manifest.json e sw.js na lista ---
+                .requestMatchers(
+                    "/css/**", 
+                    "/js/**", 
+                    "/uploads/**", 
+                    "/img/**", 
+                    "/webjars/**", 
+                    "/fragments/**",
+                    "/manifest.json",  // <--- OBRIGATÓRIO PARA O PWA
+                    "/sw.js"           // <--- OBRIGATÓRIO PARA O PWA
+                ).permitAll()
                 
                 // --- MONITORAMENTO ---
-                // Libera o Prometheus para ler as métricas sem precisar de login
                 .requestMatchers("/actuator/**").permitAll()
 
-                // Páginas públicas liberadas
+                // Páginas públicas
                 .requestMatchers(
                     "/", "/home", "/login", "/login-professional", "/admin/login",
                     "/register", "/register-professional", "/register-medico", "/register-admin",
@@ -49,24 +56,15 @@ public class SecurityConfig {
                     "/acesso-profissional", "/bem-vindo"
                 ).permitAll()
                 
-                // --- ROTAS PROTEGIDAS (Blindagem de Prefixo ROLE_) ---
-                
-                // Módulo Admin (Aceita ADMIN ou ROLE_ADMIN para evitar erro 403)
+                // --- ROTAS PROTEGIDAS ---
                 .requestMatchers("/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
-                
-                // Módulo Financeiro (Apenas Admin)
                 .requestMatchers("/financeiro/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
-
-                // Painel Profissional (Médicos, Enfermeiros, Motoristas e Admins)
-                // Usando hasAnyAuthority para garantir compatibilidade com ou sem prefixo "ROLE_"
                 .requestMatchers("/profissional/**").hasAnyAuthority(
                     "MEDICO", "ROLE_MEDICO", 
                     "ENFERMEIRO", "ROLE_ENFERMEIRO", 
                     "MOTORISTA", "ROLE_MOTORISTA", 
                     "ADMIN", "ROLE_ADMIN"
                 )
-                
-                // Rotas de Pacientes e Funcionalidades Comuns
                 .requestMatchers("/pacientes/**", "/agendamentos/**", "/documentos/**", "/telemedicina/**").authenticated()
                 
                 .anyRequest().authenticated()
@@ -82,14 +80,11 @@ public class SecurityConfig {
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
             )
-            // --- TRATAMENTO DE ACESSO NEGADO ---
             .exceptionHandling(ex -> ex
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    // Se tentar acessar ADMIN sem permissão, redireciona para login com erro
                     if (request.getRequestURI().startsWith("/admin")) {
                         response.sendRedirect("/admin/login?error=denied");
                     } else {
-                        // Outros acessos negados voltam para a home
                         response.sendRedirect("/home");
                     }
                 })
