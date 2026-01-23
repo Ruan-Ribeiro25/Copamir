@@ -1,25 +1,12 @@
-const CACHE_NAME = 'vidaplus-v1';
-const urlsToCache = [
-  '/',
-  '/login',
-  '/css/home.css', // Adicione outros CSS importantes aqui se quiser
-  '/img/logo1.png',
-  '/img/logo2.png',
-  '/manifest.json'
-];
+const CACHE_NAME = 'vidaplus-v2';
 
-// 1. Instalação: Baixa os arquivos principais para funcionar offline
+// Evento de Instalação: O navegador reconhece que é um PWA
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
-      })
-  );
+  self.skipWaiting(); // Força a ativação imediata
+  console.log('Service Worker: Instalado');
 });
 
-// 2. Ativação: Limpa caches antigos se você mudar a versão
+// Evento de Ativação: Limpa caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -32,19 +19,12 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  console.log('Service Worker: Ativado');
 });
 
-// 3. Fetch (O MAIS IMPORTANTE): Ensina o navegador a buscar no cache ou na rede
-// Sem esse trecho abaixo, o botão de instalar NÃO aparece!
+// Evento de Busca (Fetch): ESTRATÉGIA SEGURA (Network Only)
+// Isso garante que o site só carregue se tiver internet e evita o erro ERR_FAILED
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Se achou no cache, retorna o cache. Se não, busca na rede.
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
+  // Apenas deixa o navegador buscar a página normalmente na internet
+  event.respondWith(fetch(event.request));
 });
