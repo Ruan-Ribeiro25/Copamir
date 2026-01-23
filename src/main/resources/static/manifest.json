@@ -1,21 +1,20 @@
 {
+  "name": "VidaPlus",
   "short_name": "VidaPlus",
-  "name": "VidaPlus Sistema de Gestão Hospitalar",
+  "start_url": "/login", 
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#20c997",
   "icons": [
     {
-      "src": "/img/logo2.png",
-      "type": "img/png",
-      "sizes": "512x512"
+      "src": "/img/logo1.png?v=2",   
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
-      "src": "/img/logo1.png",
-      "type": "img/png",
-      "sizes": "192x192"
+      "src": "/img/logo2.png?v=2",   
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "scope": "/",
-  "theme_color": "#0d6efd"
+  ]
 }
