@@ -121,8 +121,9 @@ public class AdminController {
         model.addAttribute("totalProdutos", totalProdutos);
         model.addAttribute("alertaEstoque", alertaEstoque);
 
-        // --- AMBULÂNCIAS (PAINEL GERAL - MASTER) ---
+        // --- AMBULÂNCIAS (PAINEL GERAL) ---
         List<Ambulancia> frotaTotal = ambulanciaRepository.findAll();
+        
         long totalAmbulancias = frotaTotal.size();
         long ambEmChamado = frotaTotal.stream().filter(a -> "EM_CHAMADO".equals(a.getStatus()) || "SOLICITADO".equals(a.getStatus())).count();
         long ambNaBase = frotaTotal.stream().filter(a -> "DISPONIVEL".equals(a.getStatus())).count();
@@ -198,18 +199,14 @@ public class AdminController {
     // 2. GESTÃO DE AMBULÂNCIAS (FLUXO CORRIGIDO - INDIVIDUALIZADO)
     // =================================================================================
 
-    // 1. LISTAR HOSPITAIS (SELEÇÃO)
     @GetMapping("/ambulancias")
     public String listarPolosAmbulancia(Model model, Principal principal) {
         adicionarUsuarioAoModel(model, principal);
-        
         List<Polo> cidades = poloRepository.findByPoloPaiIsNull();
         model.addAttribute("polos", cidades);
-        
         return "admin/ambulancias-polos"; 
     }
 
-    // 2. PAINEL DE FROTA POR POLO (INDIVIDUALIZADO COM LÓGICA DE LEGADO)
     @GetMapping("/ambulancias/painel/{id}")
     public String painelFrotaPorPolo(@PathVariable Long id, Model model, Principal principal) {
         adicionarUsuarioAoModel(model, principal);
@@ -219,9 +216,6 @@ public class AdminController {
         
         List<Ambulancia> frotaFiltrada = new ArrayList<>();
         try {
-            // LÓGICA CORRIGIDA:
-            // Se for Itajubá (ID 2), traz as do polo 2 + as antigas (NULL)
-            // Se for outro Polo, traz SOMENTE as vinculadas a ele.
             String sql;
             if (id == 2L) {
                 sql = "SELECT * FROM ambulancias WHERE polo_id = :pid OR polo_id IS NULL";
@@ -249,7 +243,6 @@ public class AdminController {
         model.addAttribute("nomePolo", nomePolo); 
         model.addAttribute("hospitalId", id);
 
-        // Dados simulados para gráficos
         model.addAttribute("corridasAtual", Arrays.asList(45, 52, 38, 60, 55, 70, 65, 58, 62, 80, 95, 88));
         model.addAttribute("corridasAnterior", Arrays.asList(30, 40, 35, 45, 48, 50, 52, 48, 55, 60, 70, 65));
         model.addAttribute("dadosRadar", Arrays.asList(85, 40, 25, 60, 30)); 
@@ -258,7 +251,6 @@ public class AdminController {
         return "admin/ambulancias";
     }
 
-    // CADASTRO VINCULADO AO POLO (COM CORREÇÃO DE DATA VIA SQL)
     @Transactional
     @PostMapping("/ambulancias/salvar")
     public String salvarAmbulancia(
@@ -288,11 +280,9 @@ public class AdminController {
                 e.printStackTrace();
             }
         }
-        
         return (poloId != null) ? "redirect:/admin/ambulancias/painel/" + poloId : "redirect:/admin/ambulancias";
     }
 
-    // ATUALIZAÇÃO DE STATUS
     @PostMapping("/ambulancias/status")
     public String atualizarStatus(@RequestParam Long id, @RequestParam String acao) { 
         Ambulancia amb = ambulanciaRepository.findById(id).orElse(null);
@@ -318,7 +308,6 @@ public class AdminController {
             }
             ambulanciaRepository.save(amb);
         }
-        
         return (poloId != null) ? "redirect:/admin/ambulancias/painel/" + poloId : "redirect:/admin/ambulancias";
     }
 
@@ -401,53 +390,6 @@ public class AdminController {
 
         model.addAttribute("mapaProfissionais", mapaProfissionais);
         return "admin/lista-detalhes";
-    }
-
-    // =================================================================================
-    // 4. AUDITORIA GLOBAL PROFISSIONAL (TXT, JSON, CSV)
-    // =================================================================================
-
-    @GetMapping("/download-relatorio/{formato}")
-    public ResponseEntity<ByteArrayResource> downloadAuditoria(
-            @PathVariable String formato,
-            @RequestParam(required = false) String tipo, 
-            @RequestParam(required = false) Long clinicaId 
-    ) {
-        String conteudo = "";
-        String filename = "auditoria_GLOBAL_" + System.currentTimeMillis();
-        MediaType mediaType = MediaType.TEXT_PLAIN;
-
-        try {
-            List<?> dados = carregarDadosGlobais(tipo);
-
-            if ("JSON".equalsIgnoreCase(formato)) {
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.registerModule(new JavaTimeModule());
-                mapper.enable(SerializationFeature.INDENT_OUTPUT);
-                conteudo = mapper.writeValueAsString(dados);
-                filename += ".json";
-                mediaType = MediaType.APPLICATION_JSON;
-
-            } else if ("CSV".equalsIgnoreCase(formato)) {
-                conteudo = gerarCSV(dados);
-                filename += ".csv";
-                mediaType = MediaType.parseMediaType("text/csv");
-
-            } else { 
-                conteudo = gerarTXT(dados);
-                filename += ".txt";
-            }
-
-        } catch (Exception e) {
-            conteudo = "Erro ao gerar relatório: " + e.getMessage();
-        }
-
-        ByteArrayResource resource = new ByteArrayResource(conteudo.getBytes());
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + filename)
-                .contentType(mediaType)
-                .contentLength(resource.contentLength())
-                .body(resource);
     }
 
     // =================================================================================
@@ -548,7 +490,6 @@ public class AdminController {
         
         model.addAttribute("statsEstrutura", statsEstrutura);
         model.addAttribute("titulo", "Gestão de Polos (Cidades)");
-        // Variáveis de controle para o template
         model.addAttribute("modoClinica", false);
         model.addAttribute("modoUsuarios", false); 
         
@@ -693,9 +634,178 @@ public class AdminController {
         return statsGeral;
     }
 
+    // =================================================================================
+    // 7. GESTÃO DE LEITOS (NOVO DASHBOARD)
+    // =================================================================================
+    
+    @GetMapping("/leitos")
+    public String dashboardLeitos(Model model, Principal principal) {
+        if (principal == null) return "redirect:/login";
+        Usuario admin = usuarioRepository.findByUsernameOrCpf(principal.getName());
+        model.addAttribute("usuario", admin);
+
+        // --- MOCK DATA PARA LEITOS (Para popular o dashboard imediatamente) ---
+        // Em produção, isso viria de leitoRepository.findAll()
+        List<Map<String, Object>> listaLeitos = new ArrayList<>();
+        
+        // Simulação de Alas: UTI, Internação, Pediátria
+        String[] alas = {"UTI Adulto", "Internação Clínica", "Pediatria", "Cirúrgica"};
+        String[] statusPossiveis = {"DISPONIVEL", "OCUPADO", "HIGIENIZACAO", "MANUTENCAO", "ALTA_PREVISTA"};
+        Random random = new Random();
+
+        int totalLeitos = 50;
+        int ocupados = 0;
+        int disponiveis = 0;
+        int higienizacao = 0;
+        int manutencao = 0;
+        int altaPrevista = 0;
+
+        for (int i = 1; i <= totalLeitos; i++) {
+            Map<String, Object> leito = new HashMap<>();
+            leito.put("numero", "L-" + String.format("%03d", i));
+            
+            // Distribuição de Alas
+            String ala;
+            if (i <= 10) ala = alas[0]; // UTI
+            else if (i <= 30) ala = alas[1]; // Internação
+            else if (i <= 40) ala = alas[2]; // Pediatria
+            else ala = alas[3]; // Cirúrgica
+            leito.put("ala", ala);
+
+            // Sorteio de Status (Ponderado)
+            int r = random.nextInt(100);
+            String status;
+            if (r < 60) status = "OCUPADO";
+            else if (r < 80) status = "DISPONIVEL";
+            else if (r < 90) status = "ALTA_PREVISTA";
+            else if (r < 95) status = "HIGIENIZACAO";
+            else status = "MANUTENCAO";
+            
+            leito.put("status", status);
+
+            // Dados do Paciente (se ocupado/alta)
+            if (status.equals("OCUPADO") || status.equals("ALTA_PREVISTA")) {
+                leito.put("paciente", "Paciente Exemplo " + i);
+                leito.put("sexo", random.nextBoolean() ? "M" : "F");
+                leito.put("idade", 20 + random.nextInt(60));
+                leito.put("entrada", LocalDateTime.now().minusDays(random.nextInt(10)).format(DateTimeFormatter.ofPattern("dd/MM HH:mm")));
+                leito.put("medico", "Dr. Plantonista");
+            }
+
+            listaLeitos.add(leito);
+
+            // Contagem
+            switch(status) {
+                case "OCUPADO": ocupados++; break;
+                case "DISPONIVEL": disponiveis++; break;
+                case "HIGIENIZACAO": higienizacao++; break;
+                case "MANUTENCAO": manutencao++; break;
+                case "ALTA_PREVISTA": altaPrevista++; break;
+            }
+        }
+
+        // Agrupar por Ala para a View
+        Map<String, List<Map<String, Object>>> leitosPorAla = listaLeitos.stream()
+            .collect(Collectors.groupingBy(l -> (String) l.get("ala")));
+
+        model.addAttribute("leitosPorAla", leitosPorAla);
+        model.addAttribute("totalLeitos", totalLeitos);
+        model.addAttribute("ocupados", ocupados);
+        model.addAttribute("disponiveis", disponiveis);
+        model.addAttribute("higienizacao", higienizacao);
+        model.addAttribute("manutencao", manutencao);
+        model.addAttribute("altaPrevista", altaPrevista);
+        
+        // Percentual de Ocupação
+        long percOcupacao = Math.round(((double)(ocupados + altaPrevista) / totalLeitos) * 100);
+        model.addAttribute("percOcupacao", percOcupacao);
+
+        // Dados Gráficos (Chart.js)
+        model.addAttribute("dadosStatus", Arrays.asList(ocupados, disponiveis, higienizacao, manutencao, altaPrevista));
+        model.addAttribute("dadosAlas", Arrays.asList(
+            listaLeitos.stream().filter(l -> l.get("ala").equals("UTI Adulto") && l.get("status").equals("OCUPADO")).count(),
+            listaLeitos.stream().filter(l -> l.get("ala").equals("Internação Clínica") && l.get("status").equals("OCUPADO")).count(),
+            listaLeitos.stream().filter(l -> l.get("ala").equals("Pediatria") && l.get("status").equals("OCUPADO")).count(),
+            listaLeitos.stream().filter(l -> l.get("ala").equals("Cirúrgica") && l.get("status").equals("OCUPADO")).count()
+        ));
+
+        return "admin/leitos";
+    }
+
+    // =================================================================================
+    // 8. AUDITORIA E EXPORTAÇÃO (CORRIGIDA)
+    // =================================================================================
+
+    @GetMapping("/download-relatorio/{formato}")
+    public ResponseEntity<ByteArrayResource> downloadAuditoria(
+            @PathVariable String formato,
+            @RequestParam(required = false) String tipo, 
+            @RequestParam(required = false) Long clinicaId 
+    ) {
+        String conteudo = "";
+        String filename = "relatorio_" + (tipo != null ? tipo : "GLOBAL") + "_" + System.currentTimeMillis();
+        MediaType mediaType = MediaType.TEXT_PLAIN;
+
+        try {
+            List<?> dados = carregarDadosGlobais(tipo);
+
+            if ("JSON".equalsIgnoreCase(formato)) {
+                // CORREÇÃO: Converte Object[] em Map para JSON legível
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new JavaTimeModule());
+                mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+                if (!dados.isEmpty() && dados.get(0) instanceof Object[]) {
+                    List<Map<String, Object>> dadosJson = new ArrayList<>();
+                    for (Object obj : dados) {
+                        Object[] row = (Object[]) obj;
+                        Map<String, Object> map = new LinkedHashMap<>();
+                        map.put("data_hora", row[0]);
+                        map.put("acao", row[1]);
+                        map.put("detalhes", row[2]);
+                        map.put("responsavel", row[3]);
+                        dadosJson.add(map);
+                    }
+                    conteudo = mapper.writeValueAsString(dadosJson);
+                } else {
+                    conteudo = mapper.writeValueAsString(dados);
+                }
+                
+                filename += ".json";
+                mediaType = MediaType.APPLICATION_JSON;
+
+            } else if ("CSV".equalsIgnoreCase(formato)) {
+                conteudo = gerarCSV(dados);
+                filename += ".csv";
+                mediaType = MediaType.parseMediaType("text/csv");
+
+            } else { 
+                conteudo = gerarTXT(dados);
+                filename += ".txt";
+            }
+
+        } catch (Exception e) {
+            conteudo = "Erro ao gerar relatório: " + e.getMessage();
+        }
+
+        ByteArrayResource resource = new ByteArrayResource(conteudo.getBytes());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + filename)
+                .contentType(mediaType)
+                .contentLength(resource.contentLength())
+                .body(resource);
+    }
+
     private List<?> carregarDadosGlobais(String tipo) {
+        // Seleção EXPLÍCITA de colunas para garantir ordem
         if ("LOGS".equalsIgnoreCase(tipo)) {
-            return entityManager.createNativeQuery("SELECT * FROM historico_logs ORDER BY data_hora DESC").getResultList();
+            return entityManager.createNativeQuery("SELECT data_hora, acao, detalhes, username_registrado FROM historico_logs ORDER BY data_hora DESC").getResultList();
+        }
+        if ("EXCLUIDOS".equalsIgnoreCase(tipo)) {
+            return entityManager.createNativeQuery("SELECT data_hora, acao, detalhes, username_registrado FROM historico_logs WHERE acao = 'EXCLUSAO_USUARIO' ORDER BY data_hora DESC").getResultList();
+        }
+        if ("VOLUME".equalsIgnoreCase(tipo)) {
+             return entityManager.createNativeQuery("SELECT data_hora, acao, detalhes, username_registrado FROM historico_logs WHERE DATE(data_hora) = CURDATE() ORDER BY data_hora DESC").getResultList();
         }
         return usuarioRepository.findAll();
     }
@@ -703,12 +813,32 @@ public class AdminController {
     private String gerarCSV(List<?> dados) {
         StringBuilder sb = new StringBuilder();
         if (dados.isEmpty()) return "Nenhum dado encontrado";
+        
         Object primeiro = dados.get(0);
-        if (primeiro instanceof Usuario) {
+
+        // LOGS (Array de Objetos)
+        if (primeiro instanceof Object[]) {
+            sb.append("DATA_HORA;ACAO;DETALHES;RESPONSAVEL\n");
+            for (Object obj : dados) {
+                Object[] row = (Object[]) obj;
+                String data = row[0] != null ? row[0].toString() : "";
+                String acao = row[1] != null ? row[1].toString() : "";
+                // Remove quebras de linha para não quebrar o CSV
+                String detalhes = row[2] != null ? row[2].toString().replace("\n", " | ").replace(";", ",") : "";
+                String resp = row[3] != null ? row[3].toString() : "";
+                
+                sb.append(data).append(";")
+                  .append(acao).append(";")
+                  .append(detalhes).append(";")
+                  .append(resp).append("\n");
+            }
+        } 
+        // USUÁRIOS (Entidade)
+        else if (primeiro instanceof Usuario) {
             sb.append("ID;NOME;CPF;PERFIL;EMAIL;STATUS;POLOS_VINCULADOS\n");
             for (Object obj : dados) {
                 Usuario u = (Usuario) obj;
-                String polos = u.getPolos().stream().map(Polo::getNome).collect(Collectors.joining("|"));
+                String polos = u.getPolos() != null ? u.getPolos().stream().map(Polo::getNome).collect(Collectors.joining("|")) : "";
                 sb.append(u.getId()).append(";")
                   .append(u.getNome()).append(";")
                   .append(u.getCpf()).append(";")
@@ -717,28 +847,48 @@ public class AdminController {
                   .append(u.isAtivo() ? "ATIVO" : "INATIVO").append(";")
                   .append(polos).append("\n");
             }
-        } else {
-            sb.append("DADOS_BRUTOS\n").append(dados.toString());
+        } 
+        else {
+            sb.append("DADOS_NAO_RECONHECIDOS\n").append(dados.toString());
         }
         return sb.toString();
     }
 
     private String gerarTXT(List<?> dados) {
         StringBuilder sb = new StringBuilder();
-        sb.append("=== AUDITORIA GERAL DO SISTEMA VIDAPLUS ===\n");
-        sb.append("Data da Extração: ").append(LocalDateTime.now()).append("\n");
-        sb.append("Total de Registros: ").append(dados.size()).append("\n\n");
-        for (Object obj : dados) {
-            if (obj instanceof Usuario) {
+        sb.append("=== RELATÓRIO DE AUDITORIA VIDAPLUS ===\n");
+        sb.append("Gerado em: ").append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))).append("\n");
+        sb.append("Registros: ").append(dados.size()).append("\n");
+        sb.append("=========================================\n\n");
+
+        if (dados.isEmpty()) {
+            sb.append("Nenhum registro encontrado.\n");
+            return sb.toString();
+        }
+
+        Object primeiro = dados.get(0);
+
+        if (primeiro instanceof Object[]) {
+            for (Object obj : dados) {
+                Object[] row = (Object[]) obj;
+                sb.append("--------------------------------------------------\n");
+                sb.append("DATA: ").append(row[0]).append("\n");
+                sb.append("AÇÃO: ").append(row[1]).append("\n");
+                sb.append("RESPONSÁVEL: ").append(row[3]).append("\n");
+                sb.append("DETALHES:\n").append(row[2]).append("\n");
+            }
+        }
+        else if (primeiro instanceof Usuario) {
+            for (Object obj : dados) {
                 Usuario u = (Usuario) obj;
                 sb.append("--------------------------------------------------\n");
                 sb.append("USUÁRIO: ").append(u.getNome()).append(" (ID: ").append(u.getId()).append(")\n");
                 sb.append("CPF: ").append(u.getCpf()).append(" | PERFIL: ").append(u.getPerfil()).append("\n");
-                sb.append("VÍNCULOS: ").append(u.getPolos().stream().map(Polo::getNome).collect(Collectors.joining(", "))).append("\n");
-            } else {
-                sb.append(obj.toString()).append("\n");
+                String polos = u.getPolos() != null ? u.getPolos().stream().map(Polo::getNome).collect(Collectors.joining(", ")) : "Nenhum";
+                sb.append("VÍNCULOS: ").append(polos).append("\n");
             }
         }
+
         return sb.toString();
     }
 }

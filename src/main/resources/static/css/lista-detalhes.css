@@ -1,0 +1,156 @@
+/* ============================================================
+   ESTILOS ESPECÍFICOS: LISTA DETALHES (ZEBRA HARDCORE + HEADER VERMELHO)
+   Arquivo: lista-detalhes.css
+   ============================================================ */
+
+/* 1. CABEÇALHO */
+.header-white {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.subtitle-white {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 0.9rem;
+}
+
+.btn-back-white {
+    color: #ffffff !important;
+    font-size: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.btn-back-white:hover {
+    transform: scale(1.1);
+    color: #e0e0e0 !important;
+}
+
+/* 2. CARD DO RELATÓRIO */
+.card-refined-log {
+    border: none;
+    /* Borda removida pois o header preenchido já faz o acabamento */
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    background: white;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+/* HEADER PREENCHIDO EM VERMELHO */
+.card-header-log {
+    background: linear-gradient(135deg, #c0392b, #e74c3c); /* Vermelho Sólido com leve gradiente */
+    padding: 20px 25px;
+    border-bottom: none;
+    color: #ffffff !important; /* Texto Branco */
+    font-weight: 800;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Ícone dentro do header fica branco */
+.card-header-log i {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.2rem;
+}
+
+/* 3. TABELA ZEBRA PROFISSIONAL (OVERRIDE BOOTSTRAP) */
+.table-logs {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+}
+
+.table-logs thead th {
+    background-color: #f8f9fa;
+    color: #555;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 18px 15px;
+    border-bottom: 2px solid #ddd;
+}
+
+/* --- LÓGICA ZEBRA FORÇADA --- */
+
+/* Linhas ÍMPARES: Branco Puro */
+.table-logs tbody tr:nth-of-type(odd) > * {
+    background-color: #ffffff !important;
+    color: #333;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: inset 0 0 0 9999px #ffffff !important;
+}
+
+/* Linhas PARES: Cinza Concreto (Bem visível) */
+.table-logs tbody tr:nth-of-type(even) > * {
+    background-color: #e9ecef !important; /* Cinza mais forte para contraste da zebra */
+    color: #333;
+    border-bottom: 1px solid #dcdcdc;
+    box-shadow: inset 0 0 0 9999px #e9ecef !important;
+}
+
+/* Hover Effect (Sutil) */
+.table-logs tbody tr:hover > * {
+    box-shadow: inset 0 0 0 9999px #dfe6ed !important;
+    cursor: default;
+}
+
+/* Células */
+.table-logs td {
+    vertical-align: middle !important;
+    padding: 15px;
+    font-size: 0.9rem;
+}
+
+/* 4. COLUNA DE DETALHES (TEXTO VERMELHO) */
+.col-detalhes {
+    white-space: pre-wrap !important; /* Respeita quebras de linha */
+    word-wrap: break-word;
+    max-width: 600px;
+    line-height: 1.5;
+    font-family: 'Consolas', 'Courier New', monospace; 
+    font-size: 0.85rem !important;
+    font-weight: 600;
+    
+    /* COR VERMELHA */
+    color: #c0392b !important; 
+}
+
+/* 5. BADGES DE STATUS */
+.badge-log {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: inline-block;
+    border: 1px solid transparent;
+}
+
+.status-erro, .status-exclusao {
+    background-color: #fff5f5 !important; 
+    color: #c0392b !important; 
+    border-color: #feb2b2 !important;
+}
+
+.status-sucesso, .status-login {
+    background-color: #f0fff4 !important; 
+    color: #2f855a !important; 
+    border-color: #9ae6b4 !important;
+}
+
+.status-aviso {
+    background-color: #fffaf0 !important; 
+    color: #c05621 !important; 
+    border-color: #fbd38d !important;
+}
+
+/* 6. RESPONSIVIDADE */
+@media (max-width: 768px) {
+    .chart-col { width: 100% !important; margin-bottom: 20px; }
+    .col-detalhes { max-width: 100%; font-size: 0.8rem; }
+    .table-responsive { overflow-x: auto; }
+}

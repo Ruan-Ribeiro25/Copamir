@@ -84,7 +84,7 @@
                 <i class="fas fa-ambulance refined-icon-bg" style="color: #0dcaf0;"></i>
             </a>
 
-            <div class="card-refined card-leitos">
+            <a th:href="@{/admin/leitos}" class="card-refined card-leitos">
                 <div>
                     <div class="refined-value"><span th:text="${leitosOcupacaoPerc}">84</span>%</div>
                     <div class="refined-label">Ocupação de Leitos</div>
@@ -93,7 +93,7 @@
                     <i class="fas fa-bed"></i> <span th:text="${leitosOcupados}">42</span> Ocupados / <span th:text="${leitosVagos}">8</span> Livres
                 </div>
                 <i class="fas fa-procedures refined-icon-bg" style="color: #3498db;"></i>
-            </div>
+            </a>
 
             <a th:href="@{/admin/estoque}" class="card-refined card-estoque">
                 <div>

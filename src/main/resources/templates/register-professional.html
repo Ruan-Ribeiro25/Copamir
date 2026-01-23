@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <title>Cadastro Profissional - VidaPlus</title>
     <th:block th:replace="~{fragments/favicon :: icone}"></th:block>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}"> <link rel="stylesheet" th:href="@{/css/register-professional.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -32,6 +33,10 @@
                     <div class="role-option">
                         <input type="radio" name="tipoProfissional" id="tipoEnfermeiro" value="ENFERMEIRO" onclick="mudarTipo('ENFERMEIRO')">
                         <label for="tipoEnfermeiro"><i class="fas fa-user-nurse"></i> Enfermeiro</label>
+                    </div>
+                    <div class="role-option">
+                        <input type="radio" name="tipoProfissional" id="tipoTecnico" value="TECNICO" onclick="mudarTipo('TECNICO')">
+                        <label for="tipoTecnico"><i class="fas fa-microscope"></i> Técnico</label>
                     </div>
                     
                     <div class="role-option">
@@ -88,7 +93,7 @@
                     </div>
                     <div class="col-half">
                         <label>Matrícula Interna</label>
-                        <input type="text" name="matricula" class="form-control" placeholder="Matrícula" required>
+                        <input type="text" name="matricula" class="form-control" placeholder="Matrícula RH" required>
                     </div>
                 </div>
 
@@ -131,6 +136,13 @@
             "Triagem / Classificação de Risco", "Urgência e Emergência", "UTI Adulto", "UTI Neonatal"
         ];
 
+        // NOVA LISTA PARA TÉCNICOS
+        const especialidadesTecnico = [
+            "Técnico de Enfermagem", "Técnico em Radiologia", "Técnico em Laboratório",
+            "Técnico em Gesso", "Técnico em Farmácia", "Técnico em Segurança do Trabalho",
+            "Técnico em Informática (TI)"
+        ];
+
         const especialidadesMotorista = [
             "Condutor Socorrista (UTI)", "Condutor de Ambulância Básica", 
             "Transporte de Pacientes", "Transporte Administrativo"
@@ -143,7 +155,7 @@
 
         const especialidadesServicos = [
             "Limpeza Hospitalar", "Manutenção Predial", "Copa e Cozinha", 
-            "Lavanderia", "Segurança Patrimonial"
+            "Lavanderia", "Segurança Patrimonial", "Jardinagem"
         ];
 
         function mudarTipo(tipo) {
@@ -153,23 +165,30 @@
             
             let lista = [];
 
-            // Lógica para alternar Labels e Placeholders
+            // Lógica de Documentos Atualizada
             if (tipo === 'MEDICO') {
                 label.innerText = 'CRM (Conselho Regional de Medicina)';
                 input.placeholder = 'Ex: CRM/UF 12345';
                 lista = especialidadesMedico;
-            } else if (tipo === 'ENFERMEIRO') {
+            } 
+            else if (tipo === 'ENFERMEIRO') {
                 label.innerText = 'COREN (Conselho Regional de Enfermagem)';
                 input.placeholder = 'Ex: COREN-UF 000.000';
                 lista = especialidadesEnfermeiro;
-            } else if (tipo === 'MOTORISTA') {
+            } 
+            else if (tipo === 'MOTORISTA') {
                 label.innerText = 'CNH (Carteira Nacional de Habilitação)';
                 input.placeholder = 'Ex: Nº CNH com Categoria D/E';
                 lista = especialidadesMotorista;
-            } else if (tipo === 'RECEPCAO' || tipo === 'SERVICOS_GERAIS') {
-                label.innerText = 'RG ou Documento Funcional';
-                input.placeholder = 'Ex: RG ou ID do Crachá';
-                lista = (tipo === 'RECEPCAO') ? especialidadesRecepcao : especialidadesServicos;
+            } 
+            // AGRUPAMENTO: TÉCNICO, RECEPÇÃO E SERVIÇOS AGORA PEDEM CRACHÁ
+            else if (tipo === 'TECNICO' || tipo === 'RECEPCAO' || tipo === 'SERVICOS_GERAIS') {
+                label.innerText = 'Número do Crachá (Identificação)';
+                input.placeholder = 'Ex: ID Funcional / Crachá';
+                
+                if (tipo === 'TECNICO') lista = especialidadesTecnico;
+                else if (tipo === 'RECEPCAO') lista = especialidadesRecepcao;
+                else lista = especialidadesServicos;
             }
 
             // Atualiza Select de Especialidades
@@ -183,9 +202,15 @@
             });
         }
 
-        // Inicializa como Médico
+        // Inicializa como Médico ao carregar
         window.onload = function() {
-            mudarTipo('MEDICO');
+            // Verifica se já tem algo selecionado (caso de erro de validação no retorno)
+            const selecionado = document.querySelector('input[name="tipoProfissional"]:checked');
+            if(selecionado) {
+                mudarTipo(selecionado.value);
+            } else {
+                mudarTipo('MEDICO');
+            }
         };
     </script>
 </body>
