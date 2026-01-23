@@ -32,10 +32,11 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                // Recursos estáticos liberados
-                .requestMatchers("/css/**", "/js/**", "/uploads/**", "/img/**", "/webjars/**", "/fragments/**").permitAll()
+                // --- RECURSOS PWA E ESTÁTICOS (ATUALIZADO AQUI) ---
+                // Adicionamos /manifest.json e /sw.js para permitir a instalação do App
+                .requestMatchers("/css/**", "/js/**", "/uploads/**", "/img/**", "/webjars/**", "/fragments/**", "/manifest.json", "/sw.js").permitAll()
                 
-                // --- MONITORAMENTO (NOVO) ---
+                // --- MONITORAMENTO ---
                 // Libera o Prometheus para ler as métricas sem precisar de login
                 .requestMatchers("/actuator/**").permitAll()
 
@@ -45,7 +46,7 @@ public class SecurityConfig {
                     "/register", "/register-professional", "/register-medico", "/register-admin",
                     "/verificar-conta", "/forgot-password", "/enter-code", 
                     "/verify-reset-code", "/update-password", "/perfil/selecionar-polo",
-                    "/acesso-profissional", "/bem-vindo" // <--- ADICIONADO AQUI
+                    "/acesso-profissional", "/bem-vindo"
                 ).permitAll()
                 
                 // --- ROTAS PROTEGIDAS (Blindagem de Prefixo ROLE_) ---
