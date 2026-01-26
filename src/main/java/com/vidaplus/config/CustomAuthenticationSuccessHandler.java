@@ -25,30 +25,26 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                                         HttpServletResponse response, 
                                         Authentication authentication) throws IOException, ServletException {
         
-        System.out.println(">>> [HANDLER SUCESSO] Usuário autenticado: " + authentication.getName());
-
+        // Logs apenas para controle no console (não afeta o fluxo)
+        System.out.println(">>> [LOGIN SUCESSO] Usuário: " + authentication.getName());
+        
         Set<String> roles = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
-        System.out.println(">>> [HANDLER SUCESSO] Perfis encontrados: " + roles);
+        System.out.println(">>> [LOGIN SUCESSO] Perfis: " + roles);
 
-        // --- REGISTRO DE LOG ---
         try {
             Usuario usuario = usuarioRepository.findByUsernameOrCpf(authentication.getName());
             if(usuario != null) {
-                System.out.println(">>> [LOGIN] ID: " + usuario.getId() + " - Nome: " + usuario.getNome());
-                
-                // Log específico para Motorista para debug
-                if (roles.contains("MOTORISTA")) {
-                    System.out.println(">>> [DEBUG] Motorista detectado no Login 1. Redirecionando para Home para seguir ao Login 2.");
-                }
+                System.out.println(">>> [LOGIN DETALHES] ID: " + usuario.getId() + " - Nome: " + usuario.getNome());
             }
         } catch (Exception e) {
-            System.err.println(">>> [AVISO] Não foi possível carregar detalhes do usuário no log.");
+            System.err.println(">>> [LOG] Erro ao recuperar detalhes do usuário (sem impacto no login).");
         }
 
-        // --- MANUTENÇÃO DA REGRA: REDIRECIONAMENTO PADRÃO ---
-        // Conforme seu projeto: Todo mundo vai para a HOME após o primeiro login.
+        // --- REGRA ÚNICA E ABSOLUTA ---
+        // Independente de ser Admin, Médico, Técnico ou Paciente:
+        // O primeiro passo após o login é SEMPRE a Home.
         
-        System.out.println(">>> Redirecionando todos os perfis para /home");
+        System.out.println(">>> Redirecionando para a Página Inicial (/home)");
         response.sendRedirect("/home");
     }
 }

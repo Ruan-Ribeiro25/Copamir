@@ -32,7 +32,7 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                // --- CORREÇÃO AQUI: Adicionado manifest.json e sw.js na lista ---
+                // --- RECURSOS ESTÁTICOS & PWA ---
                 .requestMatchers(
                     "/css/**", 
                     "/js/**", 
@@ -40,16 +40,17 @@ public class SecurityConfig {
                     "/img/**", 
                     "/webjars/**", 
                     "/fragments/**",
-                    "/manifest.json",  // <--- OBRIGATÓRIO PARA O PWA
-                    "/sw.js"           // <--- OBRIGATÓRIO PARA O PWA
+                    "/manifest.json", 
+                    "/sw.js",
+                    "/favicon.ico" // <--- ADICIONADO: Libera o ícone padrão para não dar erro 500
                 ).permitAll()
                 
                 // --- MONITORAMENTO ---
                 .requestMatchers("/actuator/**").permitAll()
 
-                // Páginas públicas
+                // --- PÁGINAS PÚBLICAS ---
                 .requestMatchers(
-                    "/", "/home", "/login", "/login-professional", "/admin/login",
+                    "/", "/login", "/login-professional", "/admin/login",
                     "/register", "/register-professional", "/register-medico", "/register-admin",
                     "/verificar-conta", "/forgot-password", "/enter-code", 
                     "/verify-reset-code", "/update-password", "/perfil/selecionar-polo",
@@ -59,14 +60,23 @@ public class SecurityConfig {
                 // --- ROTAS PROTEGIDAS ---
                 .requestMatchers("/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
                 .requestMatchers("/financeiro/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+                
+                // --- PERMISSÕES DE PROFISSIONAIS ---
                 .requestMatchers("/profissional/**").hasAnyAuthority(
                     "MEDICO", "ROLE_MEDICO", 
                     "ENFERMEIRO", "ROLE_ENFERMEIRO", 
                     "MOTORISTA", "ROLE_MOTORISTA", 
-                    "ADMIN", "ROLE_ADMIN"
+                    "ADMIN", "ROLE_ADMIN",
+                    "TECNICO", "ROLE_TECNICO",
+                    "AUXILIAR", "ROLE_AUXILIAR",
+                    "RECEPCAO", "ROLE_RECEPCAO",
+                    "SERVICOS_GERAIS", "ROLE_SERVICOS_GERAIS"
                 )
+                
+                // Áreas específicas que exigem login
                 .requestMatchers("/pacientes/**", "/agendamentos/**", "/documentos/**", "/telemedicina/**").authenticated()
                 
+                // A Home e qualquer outra rota exigem apenas estar logado
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

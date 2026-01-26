@@ -1,15 +1,14 @@
 package com.vidaplus.controller;
 
 import com.vidaplus.entity.Agendamento;
+import com.vidaplus.entity.StatusAgendamento; // Import necessário devido à atualização da Entidade
 import com.vidaplus.entity.Usuario;
 import com.vidaplus.repository.AgendamentoRepository;
 import com.vidaplus.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*; // Inclui PathVariable, GetMapping, etc.
 import org.springframework.web.servlet.mvc.support.RedirectAttributes; 
 
 import java.security.Principal;
@@ -50,6 +49,23 @@ public class AgendamentoController {
         model.addAttribute("usuario", usuario);
         List<Agendamento> lista = agendamentoRepository.findByUsuario(usuario);
         model.addAttribute("agendamentos", lista);
+
+        // --- SISTEMA DE NOTIFICAÇÕES (ITEM 4) ---
+        List<String> notificacoes = new ArrayList<>();
+        // Correção: Uso do Enum StatusAgendamento.CONFIRMADO em vez de String "Agendado"
+        long agendados = lista.stream().filter(a -> a.getStatus() == StatusAgendamento.CONFIRMADO).count();
+        
+        if (agendados > 0) {
+            notificacoes.add("Lembrete: Você tem " + agendados + " consulta(s) agendada(s). Chegue 15 minutos antes.");
+        } else {
+            notificacoes.add("Dica: Mantenha seus exames em dia. Agende uma consulta!");
+        }
+        notificacoes.add("Bem-vindo ao VidaPlus! Mantenha seus dados cadastrais atualizados.");
+        
+        model.addAttribute("notificacoes", notificacoes);
+        model.addAttribute("qtdNotificacoes", notificacoes.size());
+        // ----------------------------------------
+
         return "agendamento/agendamentos"; 
     }
 
@@ -57,12 +73,9 @@ public class AgendamentoController {
     @GetMapping("/agendamentos/novo")
     public String novoAgendamento(Model model) {
         model.addAttribute("agendamento", new Agendamento());
-        model.addAttribute("listaEspecialidades", ESPECIALIDADES); // Envia lista para o HTML
+        model.addAttribute("listaEspecialidades", ESPECIALIDADES); 
         return "agendamento/agendamento-form";
     }
-
-    // --- IMPORTANTE: O método da API (/api/profissionais...) foi REMOVIDO daqui 
-    // pois foi movido para o ApiController.java para evitar conflito de URL. ---
 
     // --- SALVAR COM VALIDAÇÕES DE HORÁRIO E REGRAS ---
     @PostMapping("/agendamentos/salvar")
@@ -75,9 +88,9 @@ public class AgendamentoController {
         Usuario usuario = usuarioRepository.findByUsernameOrCpf(loginUsuario);
         
         agendamento.setUsuario(usuario);
-        agendamento.setStatus("Agendado"); 
+        // Correção: Define status como CONFIRMADO (Agendado via sistema)
+        agendamento.setStatus(StatusAgendamento.CONFIRMADO); 
         
-        // 1. Define o nome do Profissional baseado no ID do Select
         String nomeMedico = "Profissional Geral";
         if (profissionalId != null) {
             Usuario medico = usuarioRepository.findById(profissionalId).orElse(null);
@@ -87,7 +100,7 @@ public class AgendamentoController {
         }
         agendamento.setProfissional(nomeMedico);
         
-        // --- INÍCIO DAS VALIDAÇÕES DE REGRA DE NEGÓCIO ---
+        // --- INÍCIO DAS VALIDAÇÕES ---
         LocalDateTime dataHora = agendamento.getDataHora();
         if (dataHora == null) dataHora = LocalDateTime.now().plusDays(1);
 
@@ -97,39 +110,95 @@ public class AgendamentoController {
             return "redirect:/agendamentos/novo";
         }
 
-        // B. Fim de Semana (Sábado ou Domingo)
+        // B. Fim de Semana
         DayOfWeek diaSemana = dataHora.getDayOfWeek();
         if (diaSemana == DayOfWeek.SATURDAY || diaSemana == DayOfWeek.SUNDAY) {
             redirectAttributes.addFlashAttribute("erroAgendamento", "Atendimentos apenas de Segunda a Sexta-feira.");
             return "redirect:/agendamentos/novo";
         }
 
-        // C. Horário Comercial (08:00 as 18:00)
+        // C. Horário Comercial
         LocalTime hora = dataHora.toLocalTime();
         if (hora.isBefore(LocalTime.of(8, 0)) || hora.isAfter(LocalTime.of(18, 0))) {
             redirectAttributes.addFlashAttribute("erroAgendamento", "Horário de atendimento apenas entre 08:00 e 18:00.");
             return "redirect:/agendamentos/novo";
         }
 
-        // D. Feriados Nacionais
+        // D. Feriados
         String diaMes = String.format("%02d-%02d", dataHora.getDayOfMonth(), dataHora.getMonthValue());
         if (FERIADOS.contains(diaMes)) {
             redirectAttributes.addFlashAttribute("erroAgendamento", "Não há atendimento em feriados nacionais.");
             return "redirect:/agendamentos/novo";
         }
 
-        // E. Conflito de Agenda (Médico já ocupado)
-        // Verifica se existe agendamento para ESSE médico, NESSA hora, que NÃO esteja Cancelado
-        boolean ocupado = agendamentoRepository.existsByProfissionalAndDataHoraAndStatusNot(nomeMedico, dataHora, "Cancelado");
+        // E. Conflito (Verifica se já existe agendamento ativo - NÃO CANCELADO)
+        boolean ocupado = agendamentoRepository.existsByProfissionalAndDataHoraAndStatusNot(nomeMedico, dataHora, StatusAgendamento.CANCELADO);
         
         if (ocupado) {
             redirectAttributes.addFlashAttribute("erroAgendamento", "Este profissional já possui um agendamento neste horário. Por favor, escolha outro.");
             return "redirect:/agendamentos/novo";
         }
-
         // --- FIM DAS VALIDAÇÕES ---
 
         agendamentoRepository.save(agendamento);
         return "redirect:/agendamentos?sucesso=true"; 
+    }
+
+    // --- CANCELAMENTO PELO PACIENTE (POST) ---
+    @PostMapping("/agendamentos/cancelar")
+    public String cancelarAgendamento(@RequestParam("id") Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Agendamento agendamento = agendamentoRepository.findById(id).orElse(null);
+            
+            if (agendamento != null) {
+                StatusAgendamento statusAtual = agendamento.getStatus();
+                
+                if (statusAtual != StatusAgendamento.CONCLUIDO && statusAtual != StatusAgendamento.CANCELADO) {
+                    agendamento.setStatus(StatusAgendamento.CANCELADO); 
+                    agendamentoRepository.save(agendamento);
+                    redirectAttributes.addFlashAttribute("sucesso", "Consulta cancelada com sucesso.");
+                } else {
+                    redirectAttributes.addFlashAttribute("erro", "Esta consulta não pode ser cancelada.");
+                }
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("erro", "Erro ao processar cancelamento.");
+        }
+        return "redirect:/agendamentos";
+    }
+
+    // Proteção contra refresh/login no cancelar (Pacientes)
+    @GetMapping("/agendamentos/cancelar")
+    public String cancelarAgendamentoRedirect() {
+        return "redirect:/agendamentos";
+    }
+
+    // =========================================================
+    // MÉTODOS PARA O PAINEL DA RECEPÇÃO (ITEM 8)
+    // =========================================================
+
+    // Ação do botão "Confirmar Chegada" (Check-in)
+    @GetMapping("/agendamentos/checkin/{id}")
+    public String checkinAgendamento(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+        Agendamento agendamento = agendamentoRepository.findById(id).orElse(null);
+        if (agendamento != null) {
+            // Check-in: O paciente chegou e está na sala de espera
+            agendamento.setStatus(StatusAgendamento.AGUARDANDO);
+            agendamentoRepository.save(agendamento);
+            redirectAttributes.addFlashAttribute("msg", "Check-in realizado! Paciente aguardando.");
+        }
+        return "redirect:/profissional/painel"; // Retorna para o dashboard da recepção
+    }
+
+    // Ação do botão "Cancelar" (Recepção) via Link/GET
+    @GetMapping("/agendamentos/cancelar/{id}")
+    public String cancelarAgendamentoRecepcao(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+         Agendamento agendamento = agendamentoRepository.findById(id).orElse(null);
+         if (agendamento != null) {
+             agendamento.setStatus(StatusAgendamento.CANCELADO);
+             agendamentoRepository.save(agendamento);
+             redirectAttributes.addFlashAttribute("msg", "Agendamento cancelado pela recepção.");
+         }
+         return "redirect:/profissional/painel";
     }
 }

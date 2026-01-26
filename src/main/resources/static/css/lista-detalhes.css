@@ -1,63 +1,74 @@
 /* ============================================================
-   ESTILOS ESPECÍFICOS: LISTA DETALHES (ZEBRA HARDCORE + HEADER VERMELHO)
-   Arquivo: lista-detalhes.css
+   ARQUIVO: lista-detalhes.css
+   TEMA: Rústico Centralizado com Moldura Global (Verde)
    ============================================================ */
 
-/* 1. CABEÇALHO */
-.header-white {
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+/* 1. MOLDURA GLOBAL (RESET) */
+/* Não definimos background no body para que ele herde 
+   o fundo verde/médico do style.css global */
+body {
+    /* Apenas definimos a fonte base, o fundo virá do style.css */
+    color: #3e3a35;
+    font-family: 'Segoe UI', 'Georgia', serif;
 }
 
-.subtitle-white {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-size: 0.9rem;
+/* 2. CENTRALIZAÇÃO (O DOCUMENTO FLUTUANTE) */
+main.container-fluid {
+    /* Reduzimos a largura para mostrar bem o fundo verde nas laterais */
+    max-width: 1000px !important; 
+    margin: 40px auto !important; /* Centraliza vertical e horizontalmente */
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
-.btn-back-white {
+/* 3. TÍTULO E NAVEGAÇÃO (Branco sobre o Fundo Verde) */
+/* Como o fundo agora é o verde do sistema, o texto fora do card deve ser branco */
+.header-white, 
+h3.header-white,
+.subtitle-white,
+.btn-back-white,
+.btn-back-white i {
     color: #ffffff !important;
-    font-size: 1.5rem;
-    transition: transform 0.2s;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.4); /* Sombra para leitura perfeita no verde */
+    opacity: 1 !important;
 }
 
 .btn-back-white:hover {
-    transform: scale(1.1);
-    color: #e0e0e0 !important;
+    color: #f0f0f0 !important;
+    transform: translateX(-5px);
 }
 
-/* 2. CARD DO RELATÓRIO */
+/* 4. O CARTÃO DE LOGS (ESTILO RÚSTICO DE PAPEL) */
 .card-refined-log {
-    border: none;
-    /* Borda removida pois o header preenchido já faz o acabamento */
+    /* A textura de papel amassado fica APENAS AQUI dentro */
+    background-color: #f4f1ea; 
+    background-image: url('/img/bg-papel-amassado.jpg'); /* Textura */
+    background-repeat: repeat;
+    
+    /* Borda e Sombra para destacar do fundo verde */
+    border: 2px solid #8d6e63; /* Borda cor de couro */
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    background: white;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); /* Sombra forte para efeito 3D */
     overflow: hidden;
-    margin-bottom: 30px;
+    margin-top: 25px;
 }
 
-/* HEADER PREENCHIDO EM VERMELHO */
+/* Header do Cartão (Faixa Marrom) */
 .card-header-log {
-    background: linear-gradient(135deg, #c0392b, #e74c3c); /* Vermelho Sólido com leve gradiente */
-    padding: 20px 25px;
-    border-bottom: none;
-    color: #ffffff !important; /* Texto Branco */
-    font-weight: 800;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    background: linear-gradient(135deg, #5d4037 0%, #3e2723 100%);
+    color: #ffffff;
+    padding: 18px 25px;
+    font-family: 'Georgia', serif;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    border-bottom: 4px double #a1887f;
+    display: flex; align-items: center; gap: 10px;
 }
+.card-header-log i { color: #ffecb3; }
 
-/* Ícone dentro do header fica branco */
-.card-header-log i {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 1.2rem;
-}
 
-/* 3. TABELA ZEBRA PROFISSIONAL (OVERRIDE BOOTSTRAP) */
+/* 5. TABELA E ZEBRADO (Legível) */
 .table-logs {
     width: 100%;
     margin-bottom: 0;
@@ -65,92 +76,95 @@
 }
 
 .table-logs thead th {
-    background-color: #f8f9fa;
-    color: #555;
-    text-transform: uppercase;
-    font-size: 0.75rem;
+    background-color: #e3ded5; /* Bege escuro header tabela */
+    color: #3e2723;
+    font-family: 'Georgia', serif;
     font-weight: 800;
-    padding: 18px 15px;
-    border-bottom: 2px solid #ddd;
-}
-
-/* --- LÓGICA ZEBRA FORÇADA --- */
-
-/* Linhas ÍMPARES: Branco Puro */
-.table-logs tbody tr:nth-of-type(odd) > * {
-    background-color: #ffffff !important;
-    color: #333;
-    border-bottom: 1px solid #e0e0e0;
-    box-shadow: inset 0 0 0 9999px #ffffff !important;
-}
-
-/* Linhas PARES: Cinza Concreto (Bem visível) */
-.table-logs tbody tr:nth-of-type(even) > * {
-    background-color: #e9ecef !important; /* Cinza mais forte para contraste da zebra */
-    color: #333;
-    border-bottom: 1px solid #dcdcdc;
-    box-shadow: inset 0 0 0 9999px #e9ecef !important;
-}
-
-/* Hover Effect (Sutil) */
-.table-logs tbody tr:hover > * {
-    box-shadow: inset 0 0 0 9999px #dfe6ed !important;
-    cursor: default;
-}
-
-/* Células */
-.table-logs td {
-    vertical-align: middle !important;
+    text-transform: uppercase;
+    font-size: 0.8rem;
     padding: 15px;
+    border-bottom: 2px solid #8d6e63;
+}
+
+/* ZEBRADO SÓLIDO (Branco e Cinza Claro) */
+/* Remove transparência para garantir contraste */
+.table-logs tbody tr:nth-of-type(odd) td {
+    background-color: #ffffff !important;
+}
+.table-logs tbody tr:nth-of-type(even) td {
+    background-color: #f2f2f2 !important; /* Cinza claro para diferenciar */
+}
+
+.table-logs td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-bottom: 1px solid #ccc;
+    color: #333;
     font-size: 0.9rem;
 }
 
-/* 4. COLUNA DE DETALHES (TEXTO VERMELHO) */
-.col-detalhes {
-    white-space: pre-wrap !important; /* Respeita quebras de linha */
-    word-wrap: break-word;
-    max-width: 600px;
-    line-height: 1.5;
-    font-family: 'Consolas', 'Courier New', monospace; 
-    font-size: 0.85rem !important;
-    font-weight: 600;
-    
-    /* COR VERMELHA */
-    color: #c0392b !important; 
+/* Coluna Data */
+.table-logs td:first-child {
+    font-family: 'Consolas', monospace;
+    font-weight: 700;
+    color: #5d4037;
 }
 
-/* 5. BADGES DE STATUS */
+
+/* 6. STATUS BADGES (Cores Corretas) */
 .badge-log {
-    padding: 8px 12px;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-size: 0.7rem;
     font-weight: 800;
+    font-size: 0.7rem;
     text-transform: uppercase;
+    font-family: 'Consolas', monospace;
     display: inline-block;
-    border: 1px solid transparent;
+    color: white !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
 
-.status-erro, .status-exclusao {
-    background-color: #fff5f5 !important; 
-    color: #c0392b !important; 
-    border-color: #feb2b2 !important;
+/* CORES MAPEADAS EXATAMENTE CONFORME HTML */
+.status-sucesso {
+    background-color: #27ae60 !important; /* Verde */
+    border: 1px solid #1e8449;
 }
 
-.status-sucesso, .status-login {
-    background-color: #f0fff4 !important; 
-    color: #2f855a !important; 
-    border-color: #9ae6b4 !important;
+.status-exclusao, .status-erro {
+    background-color: #c0392b !important; /* Vermelho */
+    border: 1px solid #922b21;
 }
 
 .status-aviso {
-    background-color: #fffaf0 !important; 
-    color: #c05621 !important; 
-    border-color: #fbd38d !important;
+    background-color: #f39c12 !important; /* Amarelo/Laranja */
+    border: 1px solid #d68910;
 }
 
-/* 6. RESPONSIVIDADE */
+
+/* 7. DETALHES */
+.col-detalhes {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #444;
+}
+.col-detalhes div { word-break: break-all; }
+
+/* 8. EMPTY STATE */
+.empty-logs-state {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: #fff; /* Fundo branco se vazio */
+}
+.empty-logs-state i { color: #d7ccc8; margin-bottom: 15px; }
+.empty-logs-state h4 { font-family: 'Georgia', serif; color: #8d6e63; }
+
+/* RESPONSIVIDADE */
 @media (max-width: 768px) {
-    .chart-col { width: 100% !important; margin-bottom: 20px; }
-    .col-detalhes { max-width: 100%; font-size: 0.8rem; }
+    main.container-fluid { 
+        max-width: 95% !important; 
+        margin: 20px auto !important;
+        padding: 10px;
+    }
     .table-responsive { overflow-x: auto; }
 }

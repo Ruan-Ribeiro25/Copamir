@@ -1,6 +1,7 @@
 package com.vidaplus.repository;
 
 import com.vidaplus.entity.Agendamento;
+import com.vidaplus.entity.StatusAgendamento; // Import necessário
 import com.vidaplus.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -14,8 +15,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     // Busca histórico do paciente
     List<Agendamento> findByUsuario(Usuario usuario);
 
-    // --- NOVO: Verifica se já existe agendamento neste horário para este profissional ---
-    // Retorna 'true' se encontrar, ignorando os 'Cancelados'
-    // Isso impede que dois pacientes marquem com o Dr. Ruan às 10:00
-    boolean existsByProfissionalAndDataHoraAndStatusNot(String profissional, LocalDateTime dataHora, String status);
+    // --- CORREÇÃO: O parâmetro 'status' agora deve ser do tipo ENUM, e não String ---
+    // Isso resolve o erro na linha 135 do AgendamentoController
+    boolean existsByProfissionalAndDataHoraAndStatusNot(String profissional, LocalDateTime dataHora, StatusAgendamento status);
 }
