@@ -1,8 +1,7 @@
 package com.vidaplus.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "produtos")
@@ -12,56 +11,42 @@ public class Produto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String nome;
-
-    @Column(columnDefinition = "TEXT")
-    private String descricao;
-
     @Column(unique = true, nullable = false)
-    private String codigoBarras;
+    private String ean; // Código de Barras (Fundamental para o Scanner)
 
+    private String nome;
+    private String descricao;
+    private String categoria; // Farmacia, Almoxarifado, EPI, etc.
     private String lote;
+    private String dataValidade; // String para simplificar, ou LocalDate
 
-    private LocalDate dataValidade;
+    private Integer quantidade = 0;
+    private Integer quantidadeMinima = 10;
+    
+    private BigDecimal preco;
 
-    private Integer quantidadeAtual = 0;
+    // Construtores
+    public Produto() {}
 
-    private Integer estoqueMinimo = 10;
-
-    @Enumerated(EnumType.STRING)
-    private CategoriaProduto categoria;
-
-    private LocalDateTime dataCadastro;
-
-    @PrePersist
-    public void prePersist() {
-        this.dataCadastro = LocalDateTime.now();
-    }
-
-    // Getters e Setters manuais (caso o Lombok não esteja funcionando)
+    // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getEan() { return ean; }
+    public void setEan(String ean) { this.ean = ean; }
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
-    public String getCodigoBarras() { return codigoBarras; }
-    public void setCodigoBarras(String codigoBarras) { this.codigoBarras = codigoBarras; }
+    public String getCategoria() { return categoria; }
+    public void setCategoria(String categoria) { this.categoria = categoria; }
     public String getLote() { return lote; }
     public void setLote(String lote) { this.lote = lote; }
-    public LocalDate getDataValidade() { return dataValidade; }
-    public void setDataValidade(LocalDate dataValidade) { this.dataValidade = dataValidade; }
-    public Integer getQuantidadeAtual() { return quantidadeAtual; }
-    public void setQuantidadeAtual(Integer quantidadeAtual) { this.quantidadeAtual = quantidadeAtual; }
-    public Integer getEstoqueMinimo() { return estoqueMinimo; }
-    public void setEstoqueMinimo(Integer estoqueMinimo) { this.estoqueMinimo = estoqueMinimo; }
-    public CategoriaProduto getCategoria() { return categoria; }
-    public void setCategoria(CategoriaProduto categoria) { this.categoria = categoria; }
-    public LocalDateTime getDataCadastro() { return dataCadastro; }
-    public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
-
-    public enum CategoriaProduto {
-        MEDICAMENTO, INSUMO_HOSPITALAR, EPI, PAPELARIA, LIMPEZA
-    }
+    public String getDataValidade() { return dataValidade; }
+    public void setDataValidade(String dataValidade) { this.dataValidade = dataValidade; }
+    public Integer getQuantidade() { return quantidade; }
+    public void setQuantidade(Integer quantidade) { this.quantidade = quantidade; }
+    public Integer getQuantidadeMinima() { return quantidadeMinima; }
+    public void setQuantidadeMinima(Integer quantidadeMinima) { this.quantidadeMinima = quantidadeMinima; }
+    public BigDecimal getPreco() { return preco; }
+    public void setPreco(BigDecimal preco) { this.preco = preco; }
 }

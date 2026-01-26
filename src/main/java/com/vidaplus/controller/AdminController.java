@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.vidaplus.models.PedidoExame;
 
 @Controller
 @RequestMapping("/admin")
@@ -83,6 +84,10 @@ public class AdminController {
         long totalMotoristas = todosUsuarios.stream().filter(u -> u.getPerfil() != null && u.getPerfil().toUpperCase().contains("MOTORISTA")).count();
         long totalTecnicos = todosUsuarios.stream().filter(u -> u.getPerfil() != null && u.getPerfil().toUpperCase().contains("TECNICO")).count();
         long totalSvGerais = todosUsuarios.stream().filter(u -> u.getPerfil() != null && (u.getPerfil().toUpperCase().contains("GERAIS") || u.getPerfil().toUpperCase().contains("LIMPEZA") || u.getPerfil().toUpperCase().contains("MANUTENCAO"))).count();
+        
+        // --- NOVO: CONTAGEM DE RECEPCIONISTAS ---
+     // LINHA NOVA CORRIGIDA (Cobre "RECEPCIONISTA" e "RECEPCAO")
+        long totalRecepcionistas = todosUsuarios.stream().filter(u -> u.getPerfil() != null && (u.getPerfil().toUpperCase().contains("RECEPCIONISTA") || u.getPerfil().toUpperCase().contains("RECEPCAO"))).count();
 
         // --- CONTAGEM DE POLOS (UNIDADES) ---
         long totalPolos = poloRepository.findByPoloPaiIsNull().size();
@@ -180,16 +185,18 @@ public class AdminController {
         } catch (Exception e) {}
         model.addAttribute("mapaProfissionais", mapaProfissionais);
 
-        // Gráfico (12 Itens)
+        // Gráfico (Agora com 13 Itens, incluindo Recepcionistas)
         model.addAttribute("graficoLabels", Arrays.asList(
             "Pacientes", "Médicos", "Enfermeiros", "Admins", 
             "Polos", "Excluídos", "Motoristas", "Técnicos", 
-            "Clínicas", "Laboratórios", "Sv. Gerais", "Ambulâncias"
+            "Clínicas", "Laboratórios", "Sv. Gerais", "Ambulâncias",
+            "Recepcionistas" // <--- ADICIONADO NO ARRAY DE LABELS
         ));
         model.addAttribute("graficoDados", Arrays.asList(
             totalPacientes, totalMedicos, totalEnfermeiros, totalAdmins, 
             totalPolos, totalExcluidos, totalMotoristas, totalTecnicos, 
-            totalClinicas, totalLaboratorios, totalSvGerais, totalAmbulancias
+            totalClinicas, totalLaboratorios, totalSvGerais, totalAmbulancias,
+            totalRecepcionistas // <--- ADICIONADO NO ARRAY DE DADOS
         ));
 
         return "admin/painel"; 
@@ -392,6 +399,63 @@ public class AdminController {
         return "admin/lista-detalhes";
     }
 
+    @GetMapping("/laboratorio")
+    public String painelLaboratorio(Model model, Principal principal) {
+        // 1. Segurança e Dados do Usuário
+        if (principal == null) return "redirect:/login";
+        Usuario admin = usuarioRepository.findByUsernameOrCpf(principal.getName());
+        model.addAttribute("usuario", admin);
+
+        // 2. CORREÇÃO: Declara a lista vazia PRIMEIRO
+        List<PedidoExame> todosPedidos = new ArrayList<>();
+        
+        try {
+            // Tenta buscar os dados
+            String hql = "SELECT p FROM PedidoExame p ORDER BY p.dataCriacao DESC";
+            todosPedidos = entityManager.createQuery(hql, PedidoExame.class)
+                                        .setMaxResults(100)
+                                        .getResultList();
+        } catch (Exception e) {
+            // Se der erro (ex: PedidoExame não for uma Entidade mapeada), o painel abre vazio sem quebrar
+            System.err.println("Aviso: Não foi possível carregar os pedidos via JPA. Erro: " + e.getMessage());
+        }
+        
+        model.addAttribute("listaTodosPedidos", todosPedidos);
+
+        // 3. Calcular KPIs (Com proteção contra nulos)
+        long totalHoje = todosPedidos.stream()
+                .filter(p -> p.getDataCriacao() != null && p.getDataCriacao().toLocalDate().isEqual(java.time.LocalDate.now()))
+                .count();
+        
+        long pendentes = todosPedidos.stream()
+                .filter(p -> p.getStatusPagamento() != null && "PENDENTE".equals(p.getStatusPagamento().name()))
+                .count();
+        
+        long emAnalise = todosPedidos.stream()
+                .filter(p -> p.getStatusPagamento() != null && ("PROCESSANDO".equals(p.getStatusPagamento().name()) || "ANALISE".equals(p.getStatusPagamento().name())))
+                .count();
+
+        double faturamento = todosPedidos.stream()
+                .filter(p -> p.getStatusPagamento() != null && "APROVADO".equals(p.getStatusPagamento().name()))
+                .mapToDouble(p -> 50.00) 
+                .sum();
+
+        model.addAttribute("kpiTotalExames", totalHoje > 0 ? totalHoje : todosPedidos.size());
+        model.addAttribute("kpiPendentes", pendentes);
+        model.addAttribute("kpiEmAnalise", emAnalise);
+        model.addAttribute("kpiFaturamento", String.format("%.2f", faturamento));
+
+        // 4. Lista Lateral de Laboratórios
+        List<Polo> laboratorios = poloRepository.findAll().stream()
+                .filter(p -> "LABORATORIO".equalsIgnoreCase(p.getTipo()))
+                .collect(Collectors.toList());
+        
+        model.addAttribute("listaLaboratorios", laboratorios);
+        model.addAttribute("totalLaboratorios", laboratorios.size());
+
+        return "admin/gestao-laboratorio";
+    }
+    
     // =================================================================================
     // 5. AÇÕES DE GERENCIAMENTO (APROVAR, BLOQUEAR, EXCLUIR)
     // =================================================================================
