@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-// Import de Data removido para evitar erros
+import java.time.LocalDateTime; // Adicionado para garantir a data
 
 @RestController
 @RequestMapping("/api/teste")
@@ -22,60 +22,44 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- HELPER (MODO ULTRA SEGURO) ---
+    // --- HELPER ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
         
-        // Polos
         if (obj instanceof Polo) {
             Polo p = (Polo) obj;
             map.put("id", p.getId());
             map.put("nome", p.getNome());
             map.put("cidade", p.getCidade());
             map.put("ativo", p.isAtivo());
-        } 
-        // Produtos
-        else if (obj instanceof Produto) {
+        } else if (obj instanceof Produto) {
             Produto p = (Produto) obj;
             map.put("id", p.getId());
             map.put("nome", p.getNome());
-            map.put("quantidade", p.getQuantidade());
-        } 
-        // Ambulancias
-        else if (obj instanceof Ambulancia) {
+        } else if (obj instanceof Ambulancia) {
             Ambulancia a = (Ambulancia) obj;
             map.put("id", a.getId());
             map.put("placa", a.getPlaca());
-            map.put("modelo", a.getModelo());
-        } 
-        // Leitos
-        else if (obj instanceof Leito) {
+        } else if (obj instanceof Leito) {
             Leito l = (Leito) obj;
             map.put("id", l.getId());
             map.put("numero", l.getNumero());
             map.put("status", l.getStatus());
-        } 
-        // Laboratorios (SEM getStatus)
-        else if (obj instanceof Laboratorio) {
+        } else if (obj instanceof Laboratorio) {
             Laboratorio l = (Laboratorio) obj;
             map.put("id", l.getId());
             map.put("exame", l.getNomeExame());
-        } 
-        // Financeiro
-        else if (obj instanceof TransacaoFinanceira) {
+        } else if (obj instanceof TransacaoFinanceira) {
             TransacaoFinanceira f = (TransacaoFinanceira) obj;
             map.put("id", f.getId());
             map.put("descricao", f.getDescricao());
             map.put("valor", f.getValor());
-            map.put("tipo", f.getTipo());
-        } 
-        // Logs (SEM DATA para garantir que compila)
-        else if (obj instanceof Log) {
+        } else if (obj instanceof Log) {
             Log l = (Log) obj;
             map.put("id", l.getId());
             map.put("acao", l.getAcao());
-            // map.put("data", l.getDataHora()); // Removido por segurança
+            // map.put("data", l.getDataHora()); // Comentado para evitar erro se getter não existir
         }
         return map;
     }
@@ -130,14 +114,24 @@ public class TesteGeralController {
     @DeleteMapping("/laboratorio/excluir/{id}")
     public String deletarLab(@PathVariable Long id) { labRepo.deleteById(id); return "Exame excluído"; }
     
-    // LOGS (Simplificado ao Máximo)
+    // LOGS
     @GetMapping("/logs/listar")
     public List<Map<String, Object>> listarLogs() { return logRepo.findAll().stream().limit(50).map(this::simplificar).collect(Collectors.toList()); }
     
+    // ---> O FIX MAGICO: Recebe Map GENÉRICO em vez de Classe Log <---
+    // Isso evita o erro de conversão que joga pro Login
     @PostMapping("/logs/criar")
-    public Map<String, Object> criarLog(@RequestBody Log l) {
-        // Não tentamos setar data, deixamos o banco decidir ou ficar null
-        return simplificar(logRepo.save(l));
+    public Map<String, Object> criarLog(@RequestBody Map<String, Object> dados) {
+        Log novoLog = new Log();
+        
+        // Pega a ação do JSON, ou usa um padrão se vier vazio
+        String acaoTexto = (String) dados.get("acao");
+        if (acaoTexto == null) acaoTexto = "Log de Teste Manual";
+        
+        novoLog.setAcao(acaoTexto);
+        novoLog.setDataHora(LocalDateTime.now()); // Data automática
+        
+        return simplificar(logRepo.save(novoLog));
     }
     
     @DeleteMapping("/logs/excluir/{id}")
