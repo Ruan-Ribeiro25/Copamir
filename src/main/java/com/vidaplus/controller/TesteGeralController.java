@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime; // Importante para a data do Log
+// Import de Data removido para evitar erros
 
 @RestController
 @RequestMapping("/api/teste")
@@ -22,48 +22,60 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- HELPER (Mantido a correção do Laboratorio) ---
+    // --- HELPER (MODO ULTRA SEGURO) ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
         
+        // Polos
         if (obj instanceof Polo) {
             Polo p = (Polo) obj;
             map.put("id", p.getId());
             map.put("nome", p.getNome());
             map.put("cidade", p.getCidade());
             map.put("ativo", p.isAtivo());
-        } else if (obj instanceof Produto) {
+        } 
+        // Produtos
+        else if (obj instanceof Produto) {
             Produto p = (Produto) obj;
             map.put("id", p.getId());
             map.put("nome", p.getNome());
             map.put("quantidade", p.getQuantidade());
-        } else if (obj instanceof Ambulancia) {
+        } 
+        // Ambulancias
+        else if (obj instanceof Ambulancia) {
             Ambulancia a = (Ambulancia) obj;
             map.put("id", a.getId());
             map.put("placa", a.getPlaca());
             map.put("modelo", a.getModelo());
-        } else if (obj instanceof Leito) {
+        } 
+        // Leitos
+        else if (obj instanceof Leito) {
             Leito l = (Leito) obj;
             map.put("id", l.getId());
             map.put("numero", l.getNumero());
             map.put("status", l.getStatus());
-        } else if (obj instanceof Laboratorio) {
+        } 
+        // Laboratorios (SEM getStatus)
+        else if (obj instanceof Laboratorio) {
             Laboratorio l = (Laboratorio) obj;
             map.put("id", l.getId());
             map.put("exame", l.getNomeExame());
-            // STATUS REMOVIDO
-        } else if (obj instanceof TransacaoFinanceira) {
+        } 
+        // Financeiro
+        else if (obj instanceof TransacaoFinanceira) {
             TransacaoFinanceira f = (TransacaoFinanceira) obj;
             map.put("id", f.getId());
             map.put("descricao", f.getDescricao());
             map.put("valor", f.getValor());
             map.put("tipo", f.getTipo());
-        } else if (obj instanceof Log) {
+        } 
+        // Logs (SEM DATA para garantir que compila)
+        else if (obj instanceof Log) {
             Log l = (Log) obj;
             map.put("id", l.getId());
             map.put("acao", l.getAcao());
-            map.put("data", l.getDataHora());
+            // map.put("data", l.getDataHora()); // Removido por segurança
         }
         return map;
     }
@@ -118,18 +130,16 @@ public class TesteGeralController {
     @DeleteMapping("/laboratorio/excluir/{id}")
     public String deletarLab(@PathVariable Long id) { labRepo.deleteById(id); return "Exame excluído"; }
     
-    // LOGS (AGORA COM O CRIAR!)
+    // LOGS (Simplificado ao Máximo)
     @GetMapping("/logs/listar")
     public List<Map<String, Object>> listarLogs() { return logRepo.findAll().stream().limit(50).map(this::simplificar).collect(Collectors.toList()); }
     
-    // ---> O QUE FALTAVA <---
     @PostMapping("/logs/criar")
     public Map<String, Object> criarLog(@RequestBody Log l) {
-        if(l.getDataHora() == null) l.setDataHora(LocalDateTime.now()); // Garante data se não vier
+        // Não tentamos setar data, deixamos o banco decidir ou ficar null
         return simplificar(logRepo.save(l));
     }
-    // -----------------------
-
+    
     @DeleteMapping("/logs/excluir/{id}")
     public String deletarLog(@PathVariable Long id) { logRepo.deleteById(id); return "Log excluído"; }
     @DeleteMapping("/logs/limpar-tudo")
