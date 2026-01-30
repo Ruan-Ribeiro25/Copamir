@@ -44,7 +44,7 @@ public class SecurityConfig {
                     "/sw.js",
                     "/favicon.ico" // <--- ADICIONADO: Libera o ícone padrão para não dar erro 500
                 ).permitAll()
-                
+                .requestMatchers("/api/teste/**").permitAll() // <--- ADICIONE ESTA LINHA! LIBERA O ACESSO
                 // --- MONITORAMENTO ---
                 .requestMatchers("/actuator/**").permitAll()
 
