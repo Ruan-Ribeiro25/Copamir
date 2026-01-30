@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime; // Importante para a data do Log
 
 @RestController
 @RequestMapping("/api/teste")
@@ -21,7 +22,7 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- HELPER (CORRIGIDO: Removido o getStatus que dava erro) ---
+    // --- HELPER (Mantido a correção do Laboratorio) ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
@@ -51,7 +52,7 @@ public class TesteGeralController {
             Laboratorio l = (Laboratorio) obj;
             map.put("id", l.getId());
             map.put("exame", l.getNomeExame());
-            // REMOVI A LINHA 'STATUS' AQUI PARA NÃO DAR ERRO DE COMPILAÇÃO
+            // STATUS REMOVIDO
         } else if (obj instanceof TransacaoFinanceira) {
             TransacaoFinanceira f = (TransacaoFinanceira) obj;
             map.put("id", f.getId());
@@ -67,7 +68,7 @@ public class TesteGeralController {
         return map;
     }
 
-    // ================== MÉTODOS (TUDO IGUAL) ==================
+    // ================== MÉTODOS ==================
     
     // POLOS
     @GetMapping("/polos/listar")
@@ -117,9 +118,18 @@ public class TesteGeralController {
     @DeleteMapping("/laboratorio/excluir/{id}")
     public String deletarLab(@PathVariable Long id) { labRepo.deleteById(id); return "Exame excluído"; }
     
-    // LOGS
+    // LOGS (AGORA COM O CRIAR!)
     @GetMapping("/logs/listar")
     public List<Map<String, Object>> listarLogs() { return logRepo.findAll().stream().limit(50).map(this::simplificar).collect(Collectors.toList()); }
+    
+    // ---> O QUE FALTAVA <---
+    @PostMapping("/logs/criar")
+    public Map<String, Object> criarLog(@RequestBody Log l) {
+        if(l.getDataHora() == null) l.setDataHora(LocalDateTime.now()); // Garante data se não vier
+        return simplificar(logRepo.save(l));
+    }
+    // -----------------------
+
     @DeleteMapping("/logs/excluir/{id}")
     public String deletarLog(@PathVariable Long id) { logRepo.deleteById(id); return "Log excluído"; }
     @DeleteMapping("/logs/limpar-tudo")
