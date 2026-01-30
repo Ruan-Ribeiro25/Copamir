@@ -8,7 +8,6 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -30,7 +29,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            // 1. DESATIVA O CSRF (OBRIGATÓRIO PARA O POST DO POSTMAN FUNCIONAR)
+            .csrf(csrf -> csrf.disable()) 
+
             .authorizeHttpRequests(auth -> auth
                 // --- RECURSOS ESTÁTICOS & PWA ---
                 .requestMatchers(
@@ -42,9 +43,12 @@ public class SecurityConfig {
                     "/fragments/**",
                     "/manifest.json", 
                     "/sw.js",
-                    "/favicon.ico" // <--- ADICIONADO: Libera o ícone padrão para não dar erro 500
+                    "/favicon.ico"
                 ).permitAll()
-                .requestMatchers("/api/teste/**").permitAll() // <--- ADICIONE ESTA LINHA! LIBERA O ACESSO
+                
+                // --- API DE TESTE (LIBERADA) ---
+                .requestMatchers("/api/teste/**").permitAll() 
+                
                 // --- MONITORAMENTO ---
                 .requestMatchers("/actuator/**").permitAll()
 
@@ -76,7 +80,7 @@ public class SecurityConfig {
                 // Áreas específicas que exigem login
                 .requestMatchers("/pacientes/**", "/agendamentos/**", "/documentos/**", "/telemedicina/**").authenticated()
                 
-                // A Home e qualquer outra rota exigem apenas estar logado
+                // Qualquer outra rota exige login
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

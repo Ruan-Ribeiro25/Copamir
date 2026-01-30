@@ -1,18 +1,20 @@
 package com.vidaplus.controller;
 
-// --- IMPORTS OBRIGATÓRIOS (ISSO CORRIGE OS ERROS VERMELHOS) ---
+// --- IMPORTS OBRIGATÓRIOS ---
 import com.vidaplus.entity.Ambulancia;
 import com.vidaplus.entity.Laboratorio;
 import com.vidaplus.entity.Leito;
 import com.vidaplus.entity.Log;
 import com.vidaplus.entity.Polo;
-import com.vidaplus.entity.TransacaoFinanceira; // Seu nome correto
+import com.vidaplus.entity.Produto; // <--- NOVO (Estoque)
+import com.vidaplus.entity.TransacaoFinanceira;
 
 import com.vidaplus.repository.AmbulanciaRepository;
-import com.vidaplus.repository.LaboratorioRepository; // Agora vai funcionar
-import com.vidaplus.repository.LeitoRepository;       // Agora vai funcionar
+import com.vidaplus.repository.LaboratorioRepository;
+import com.vidaplus.repository.LeitoRepository;
 import com.vidaplus.repository.LogRepository;
 import com.vidaplus.repository.PoloRepository;
+import com.vidaplus.repository.ProdutoRepository; // <--- NOVO (Estoque)
 import com.vidaplus.repository.TransacaoFinanceiraRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-// ---------------------------------------------------------------
 
 @RestController
 @RequestMapping("/api/teste")
@@ -33,6 +34,7 @@ public class TesteGeralController {
     @Autowired private LeitoRepository leitoRepo;      
     @Autowired private LaboratorioRepository labRepo;  
     @Autowired private TransacaoFinanceiraRepository finRepo; 
+    @Autowired private ProdutoRepository prodRepo; // <--- REPOSITÓRIO DO ESTOQUE
 
     // --- HELPER PARA JSON LIMPO ---
     private Map<String, Object> simplificar(Object obj) {
@@ -43,10 +45,18 @@ public class TesteGeralController {
             Polo p = (Polo) obj;
             map.put("id", p.getId());
             map.put("nome", p.getNome());
+        } else if (obj instanceof Produto) { // <--- LÓGICA DO ESTOQUE
+            Produto p = (Produto) obj;
+            map.put("id", p.getId());
+            map.put("nome", p.getNome());
+            // Tente usar os getters abaixo. Se der vermelho, apague a linha ou verifique o nome na Entidade.
+            // map.put("quantidade", p.getQuantidade()); 
+            // map.put("valor", p.getValor());
         } else if (obj instanceof Ambulancia) {
             Ambulancia a = (Ambulancia) obj;
             map.put("id", a.getId());
             map.put("placa", a.getPlaca());
+            // map.put("disponivel", a.getDisponivel()); // Removido para evitar erro de compilação
         } else if (obj instanceof Leito) {
             Leito l = (Leito) obj;
             map.put("id", l.getId());
@@ -69,7 +79,26 @@ public class TesteGeralController {
         return map;
     }
 
-    // ================== AMBULANCIAS ==================
+    // ================== ESTOQUE (PRODUTOS) - [NOVO] ==================
+    @GetMapping("/estoque/listar")
+    public List<Map<String, Object>> listarEstoque() { 
+        return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
+    }
+    
+    @PostMapping("/estoque/criar")
+    public Map<String, Object> criarProduto(@RequestBody Produto p) { 
+        return simplificar(prodRepo.save(p)); 
+    }
+    
+    @DeleteMapping("/estoque/excluir/{id}")
+    public String deletarProduto(@PathVariable Long id) { 
+        prodRepo.deleteById(id); 
+        return "OK"; 
+    }
+
+    // ================== OUTROS (JÁ EXISTENTES) ==================
+    
+    // AMBULANCIAS
     @GetMapping("/ambulancias/listar")
     public List<Map<String, Object>> listarAmbu() { return ambuRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/ambulancias/criar")
@@ -77,7 +106,7 @@ public class TesteGeralController {
     @DeleteMapping("/ambulancias/excluir/{id}")
     public String deletarAmbu(@PathVariable Long id) { ambuRepo.deleteById(id); return "OK"; }
 
-    // ================== FINANCEIRO ==================
+    // FINANCEIRO
     @GetMapping("/financeiro/listar")
     public List<Map<String, Object>> listarFin() { return finRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/financeiro/criar")
@@ -85,7 +114,7 @@ public class TesteGeralController {
     @DeleteMapping("/financeiro/excluir/{id}")
     public String deletarFin(@PathVariable Long id) { finRepo.deleteById(id); return "OK"; }
 
-    // ================== LEITOS ==================
+    // LEITOS
     @GetMapping("/leitos/listar")
     public List<Map<String, Object>> listarLeitos() { return leitoRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/leitos/criar")
@@ -93,7 +122,7 @@ public class TesteGeralController {
     @DeleteMapping("/leitos/excluir/{id}")
     public String deletarLeito(@PathVariable Long id) { leitoRepo.deleteById(id); return "OK"; }
 
-    // ================== LABORATORIO ==================
+    // LABORATORIO
     @GetMapping("/laboratorio/listar")
     public List<Map<String, Object>> listarLab() { return labRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/laboratorio/criar")
@@ -101,7 +130,7 @@ public class TesteGeralController {
     @DeleteMapping("/laboratorio/excluir/{id}")
     public String deletarLab(@PathVariable Long id) { labRepo.deleteById(id); return "OK"; }
     
-    // ================== POLOS E LOGS ==================
+    // POLOS E LOGS
     @GetMapping("/polos/listar")
     public List<Map<String, Object>> listarPolos() { return poloRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     
