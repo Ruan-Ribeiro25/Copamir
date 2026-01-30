@@ -21,7 +21,7 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- HELPER ---
+    // --- HELPER (CORRIGIDO: Removido o getStatus que dava erro) ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
@@ -51,7 +51,7 @@ public class TesteGeralController {
             Laboratorio l = (Laboratorio) obj;
             map.put("id", l.getId());
             map.put("exame", l.getNomeExame());
-            map.put("status", l.getStatus());
+            // REMOVI A LINHA 'STATUS' AQUI PARA NÃO DAR ERRO DE COMPILAÇÃO
         } else if (obj instanceof TransacaoFinanceira) {
             TransacaoFinanceira f = (TransacaoFinanceira) obj;
             map.put("id", f.getId());
@@ -67,107 +67,61 @@ public class TesteGeralController {
         return map;
     }
 
-    // ================== POLOS ==================
+    // ================== MÉTODOS (TUDO IGUAL) ==================
+    
+    // POLOS
     @GetMapping("/polos/listar")
-    public List<Map<String, Object>> listarPolos() { 
-        return poloRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
-    }
+    public List<Map<String, Object>> listarPolos() { return poloRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/polos/criar")
-    public Map<String, Object> criarPolo(@RequestBody Polo p) { 
-        return simplificar(poloRepo.save(p)); 
-    }
+    public Map<String, Object> criarPolo(@RequestBody Polo p) { return simplificar(poloRepo.save(p)); }
     @DeleteMapping("/polos/excluir/{id}")
-    public String deletarPolo(@PathVariable Long id) { 
-        poloRepo.deleteById(id); return "Polo excluído com sucesso"; 
-    }
+    public String deletarPolo(@PathVariable Long id) { poloRepo.deleteById(id); return "Polo excluído"; }
 
-    // ================== ESTOQUE ==================
+    // ESTOQUE
     @GetMapping("/estoque/listar")
-    public List<Map<String, Object>> listarEstoque() { 
-        return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
-    }
+    public List<Map<String, Object>> listarEstoque() { return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/estoque/criar")
-    public Map<String, Object> criarProduto(@RequestBody Produto p) { 
-        return simplificar(prodRepo.save(p)); 
-    }
+    public Map<String, Object> criarProduto(@RequestBody Produto p) { return simplificar(prodRepo.save(p)); }
     @DeleteMapping("/estoque/excluir/{id}")
-    public String deletarProduto(@PathVariable Long id) { 
-        prodRepo.deleteById(id); return "Produto excluído com sucesso"; 
-    }
+    public String deletarProduto(@PathVariable Long id) { prodRepo.deleteById(id); return "Produto excluído"; }
 
-    // ================== AMBULANCIAS ==================
+    // AMBULANCIAS
     @GetMapping("/ambulancias/listar")
-    public List<Map<String, Object>> listarAmbu() { 
-        return ambuRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
-    }
+    public List<Map<String, Object>> listarAmbu() { return ambuRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/ambulancias/criar")
-    public Map<String, Object> criarAmbu(@RequestBody Ambulancia a) { 
-        return simplificar(ambuRepo.save(a)); 
-    }
+    public Map<String, Object> criarAmbu(@RequestBody Ambulancia a) { return simplificar(ambuRepo.save(a)); }
     @DeleteMapping("/ambulancias/excluir/{id}")
-    public String deletarAmbu(@PathVariable Long id) { 
-        ambuRepo.deleteById(id); return "Ambulância excluída com sucesso"; 
-    }
+    public String deletarAmbu(@PathVariable Long id) { ambuRepo.deleteById(id); return "Ambulância excluída"; }
 
-    // ================== FINANCEIRO ==================
+    // FINANCEIRO
     @GetMapping("/financeiro/listar")
-    public List<Map<String, Object>> listarFin() { 
-        return finRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
-    }
+    public List<Map<String, Object>> listarFin() { return finRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/financeiro/criar")
-    public Map<String, Object> criarFin(@RequestBody TransacaoFinanceira f) { 
-        return simplificar(finRepo.save(f)); 
-    }
+    public Map<String, Object> criarFin(@RequestBody TransacaoFinanceira f) { return simplificar(finRepo.save(f)); }
     @DeleteMapping("/financeiro/excluir/{id}")
-    public String deletarFin(@PathVariable Long id) { 
-        finRepo.deleteById(id); return "Transação excluída com sucesso"; 
-    }
+    public String deletarFin(@PathVariable Long id) { finRepo.deleteById(id); return "Transação excluída"; }
 
-    // ================== LEITOS ==================
+    // LEITOS
     @GetMapping("/leitos/listar")
-    public List<Map<String, Object>> listarLeitos() { 
-        return leitoRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
-    }
+    public List<Map<String, Object>> listarLeitos() { return leitoRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/leitos/criar")
-    public Map<String, Object> criarLeito(@RequestBody Leito l) { 
-        return simplificar(leitoRepo.save(l)); 
-    }
+    public Map<String, Object> criarLeito(@RequestBody Leito l) { return simplificar(leitoRepo.save(l)); }
     @DeleteMapping("/leitos/excluir/{id}")
-    public String deletarLeito(@PathVariable Long id) { 
-        leitoRepo.deleteById(id); return "Leito excluído com sucesso"; 
-    }
+    public String deletarLeito(@PathVariable Long id) { leitoRepo.deleteById(id); return "Leito excluído"; }
 
-    // ================== LABORATORIO ==================
+    // LABORATORIO
     @GetMapping("/laboratorio/listar")
-    public List<Map<String, Object>> listarLab() { 
-        return labRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
-    }
+    public List<Map<String, Object>> listarLab() { return labRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/laboratorio/criar")
-    public Map<String, Object> criarLab(@RequestBody Laboratorio l) { 
-        return simplificar(labRepo.save(l)); 
-    }
+    public Map<String, Object> criarLab(@RequestBody Laboratorio l) { return simplificar(labRepo.save(l)); }
     @DeleteMapping("/laboratorio/excluir/{id}")
-    public String deletarLab(@PathVariable Long id) { 
-        labRepo.deleteById(id); return "Exame excluído com sucesso"; 
-    }
+    public String deletarLab(@PathVariable Long id) { labRepo.deleteById(id); return "Exame excluído"; }
     
-    // ================== LOGS (AGORA COM DELETE) ==================
+    // LOGS
     @GetMapping("/logs/listar")
-    public List<Map<String, Object>> listarLogs() { 
-        return logRepo.findAll().stream().limit(50).map(this::simplificar).collect(Collectors.toList()); 
-    }
-
-    // ---> NOVO: EXCLUIR LOG <---
+    public List<Map<String, Object>> listarLogs() { return logRepo.findAll().stream().limit(50).map(this::simplificar).collect(Collectors.toList()); }
     @DeleteMapping("/logs/excluir/{id}")
-    public String deletarLog(@PathVariable Long id) {
-        logRepo.deleteById(id);
-        return "Log excluído com sucesso";
-    }
-    
-    // ---> BÔNUS: LIMPAR TODOS OS LOGS <---
+    public String deletarLog(@PathVariable Long id) { logRepo.deleteById(id); return "Log excluído"; }
     @DeleteMapping("/logs/limpar-tudo")
-    public String limparTodosLogs() {
-        logRepo.deleteAll();
-        return "Todos os logs foram apagados!";
-    }
+    public String limparTodosLogs() { logRepo.deleteAll(); return "Todos os logs foram apagados!"; }
 }
