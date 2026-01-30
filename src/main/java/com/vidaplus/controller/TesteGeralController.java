@@ -21,7 +21,7 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- HELPER PARA JSON LIMPO ---
+    // --- HELPER ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
@@ -36,10 +36,12 @@ public class TesteGeralController {
             Produto p = (Produto) obj;
             map.put("id", p.getId());
             map.put("nome", p.getNome());
+            map.put("quantidade", p.getQuantidade());
         } else if (obj instanceof Ambulancia) {
             Ambulancia a = (Ambulancia) obj;
             map.put("id", a.getId());
             map.put("placa", a.getPlaca());
+            map.put("modelo", a.getModelo());
         } else if (obj instanceof Leito) {
             Leito l = (Leito) obj;
             map.put("id", l.getId());
@@ -49,15 +51,18 @@ public class TesteGeralController {
             Laboratorio l = (Laboratorio) obj;
             map.put("id", l.getId());
             map.put("exame", l.getNomeExame());
+            map.put("status", l.getStatus());
         } else if (obj instanceof TransacaoFinanceira) {
             TransacaoFinanceira f = (TransacaoFinanceira) obj;
             map.put("id", f.getId());
             map.put("descricao", f.getDescricao());
             map.put("valor", f.getValor());
+            map.put("tipo", f.getTipo());
         } else if (obj instanceof Log) {
             Log l = (Log) obj;
             map.put("id", l.getId());
             map.put("acao", l.getAcao());
+            map.put("data", l.getDataHora());
         }
         return map;
     }
@@ -67,11 +72,13 @@ public class TesteGeralController {
     public List<Map<String, Object>> listarPolos() { 
         return poloRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); 
     }
-
-    // O MÉTODO QUE FALTAVA (CRUCIAL PARA O POST FUNCIONAR)
     @PostMapping("/polos/criar")
-    public Map<String, Object> criarPolo(@RequestBody Polo p) {
-        return simplificar(poloRepo.save(p));
+    public Map<String, Object> criarPolo(@RequestBody Polo p) { 
+        return simplificar(poloRepo.save(p)); 
+    }
+    @DeleteMapping("/polos/excluir/{id}")
+    public String deletarPolo(@PathVariable Long id) { 
+        poloRepo.deleteById(id); return "Polo excluído com sucesso"; 
     }
 
     // ================== ESTOQUE ==================
@@ -85,7 +92,7 @@ public class TesteGeralController {
     }
     @DeleteMapping("/estoque/excluir/{id}")
     public String deletarProduto(@PathVariable Long id) { 
-        prodRepo.deleteById(id); return "OK"; 
+        prodRepo.deleteById(id); return "Produto excluído com sucesso"; 
     }
 
     // ================== AMBULANCIAS ==================
@@ -99,7 +106,7 @@ public class TesteGeralController {
     }
     @DeleteMapping("/ambulancias/excluir/{id}")
     public String deletarAmbu(@PathVariable Long id) { 
-        ambuRepo.deleteById(id); return "OK"; 
+        ambuRepo.deleteById(id); return "Ambulância excluída com sucesso"; 
     }
 
     // ================== FINANCEIRO ==================
@@ -113,7 +120,7 @@ public class TesteGeralController {
     }
     @DeleteMapping("/financeiro/excluir/{id}")
     public String deletarFin(@PathVariable Long id) { 
-        finRepo.deleteById(id); return "OK"; 
+        finRepo.deleteById(id); return "Transação excluída com sucesso"; 
     }
 
     // ================== LEITOS ==================
@@ -127,7 +134,7 @@ public class TesteGeralController {
     }
     @DeleteMapping("/leitos/excluir/{id}")
     public String deletarLeito(@PathVariable Long id) { 
-        leitoRepo.deleteById(id); return "OK"; 
+        leitoRepo.deleteById(id); return "Leito excluído com sucesso"; 
     }
 
     // ================== LABORATORIO ==================
@@ -141,12 +148,26 @@ public class TesteGeralController {
     }
     @DeleteMapping("/laboratorio/excluir/{id}")
     public String deletarLab(@PathVariable Long id) { 
-        labRepo.deleteById(id); return "OK"; 
+        labRepo.deleteById(id); return "Exame excluído com sucesso"; 
     }
     
-    // ================== LOGS ==================
+    // ================== LOGS (AGORA COM DELETE) ==================
     @GetMapping("/logs/listar")
     public List<Map<String, Object>> listarLogs() { 
         return logRepo.findAll().stream().limit(50).map(this::simplificar).collect(Collectors.toList()); 
+    }
+
+    // ---> NOVO: EXCLUIR LOG <---
+    @DeleteMapping("/logs/excluir/{id}")
+    public String deletarLog(@PathVariable Long id) {
+        logRepo.deleteById(id);
+        return "Log excluído com sucesso";
+    }
+    
+    // ---> BÔNUS: LIMPAR TODOS OS LOGS <---
+    @DeleteMapping("/logs/limpar-tudo")
+    public String limparTodosLogs() {
+        logRepo.deleteAll();
+        return "Todos os logs foram apagados!";
     }
 }
