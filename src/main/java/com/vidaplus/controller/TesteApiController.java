@@ -3,9 +3,11 @@ package com.vidaplus.controller;
 import com.vidaplus.entity.Usuario;
 import com.vidaplus.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*; // Importa PutMapping, DeleteMapping, PathVariable, etc.
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -15,51 +17,71 @@ public class TesteApiController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    // --- MÉTODO AUXILIAR PARA EVITAR TRAVAMENTO (JSON LIMPO) ---
+    private Map<String, Object> simplificarUsuario(Usuario u) {
+        Map<String, Object> dto = new HashMap<>();
+        dto.put("id", u.getId());
+        dto.put("nome", u.getNome());
+        dto.put("email", u.getEmail());
+        dto.put("cpf", u.getCpf());
+        dto.put("perfil", u.getPerfil());
+        dto.put("ativo", u.isAtivo());
+        return dto;
+    }
+
     // 1. CRIAR (POST)
     @PostMapping("/criar")
-    public Usuario criarUsuario(@RequestBody Usuario usuario) {
-        return usuarioRepository.save(usuario);
+    public Map<String, Object> criarUsuario(@RequestBody Usuario usuario) {
+        Usuario salvo = usuarioRepository.save(usuario);
+        return simplificarUsuario(salvo);
     }
 
-    // 2. LISTAR TODOS (GET)
+    // 2. LISTAR TODOS - OTIMIZADO (GET)
     @GetMapping("/listar")
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
-    }
-
-    // 3. PESQUISAR (GET)
-    @GetMapping("/pesquisar")
-    public List<Usuario> pesquisarPorNome(@RequestParam String nome) {
-        List<Usuario> todos = usuarioRepository.findAll();
-        if (nome == null) return todos;
-        return todos.stream()
-                .filter(u -> u.getNome() != null && 
-                             u.getNome().toLowerCase().contains(nome.toLowerCase()))
+    public List<Map<String, Object>> listarTodos() {
+        return usuarioRepository.findAll().stream()
+                .map(this::simplificarUsuario) // Usa o método limpador
                 .collect(Collectors.toList());
     }
 
-    // 4. ATUALIZAR (PUT) - [NOVO]
+    // 3. PESQUISAR - OTIMIZADO (GET)
+    @GetMapping("/pesquisar")
+    public List<Map<String, Object>> pesquisarPorNome(@RequestParam String nome) {
+        List<Usuario> todos = usuarioRepository.findAll();
+        if (nome == null) return listarTodos();
+
+        return todos.stream()
+                .filter(u -> u.getNome() != null && 
+                             u.getNome().toLowerCase().contains(nome.toLowerCase()))
+                .map(this::simplificarUsuario) // Usa o método limpador
+                .collect(Collectors.toList());
+    }
+
+    // 4. ATUALIZAR (PUT)
     @PutMapping("/atualizar/{id}")
-    public Usuario atualizarUsuario(@PathVariable Long id, @RequestBody Usuario dadosNovos) {
+    public Map<String, Object> atualizarUsuario(@PathVariable Long id, @RequestBody Usuario dadosNovos) {
         return usuarioRepository.findById(id).map(usuarioExistente -> {
-            // Atualiza apenas os dados enviados
             if(dadosNovos.getNome() != null) usuarioExistente.setNome(dadosNovos.getNome());
             if(dadosNovos.getEmail() != null) usuarioExistente.setEmail(dadosNovos.getEmail());
             if(dadosNovos.getPerfil() != null) usuarioExistente.setPerfil(dadosNovos.getPerfil());
-            if(dadosNovos.getCpf() != null) usuarioExistente.setCpf(dadosNovos.getCpf());
-            // Salva as alterações
-            return usuarioRepository.save(usuarioExistente);
-        }).orElse(null); // Retorna nulo se não achar o ID
+            
+            // Atualiza e retorna o JSON limpo
+            return simplificarUsuario(usuarioRepository.save(usuarioExistente));
+        }).orElse(null);
     }
 
-    // 5. EXCLUIR (DELETE) - [NOVO]
+    // 5. EXCLUIR (DELETE)
     @DeleteMapping("/excluir/{id}")
-    public String excluirUsuario(@PathVariable Long id) {
+    public Map<String, String> excluirUsuario(@PathVariable Long id) {
+        Map<String, String> resposta = new HashMap<>();
         if (usuarioRepository.existsById(id)) {
             usuarioRepository.deleteById(id);
-            return "Usuário com ID " + id + " foi excluído com sucesso.";
+            resposta.put("mensagem", "Usuário ID " + id + " excluído com sucesso.");
+            resposta.put("status", "sucesso");
         } else {
-            return "Usuário não encontrado.";
+            resposta.put("mensagem", "Usuário não encontrado.");
+            resposta.put("status", "erro");
         }
+        return resposta;
     }
 }
