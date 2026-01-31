@@ -22,7 +22,7 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- HELPER ---
+    // --- HELPER DE VISUALIZAÇÃO ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
@@ -42,7 +42,6 @@ public class TesteGeralController {
                 Ambulancia a = (Ambulancia) obj;
                 map.put("id", a.getId());
                 map.put("placa", a.getPlaca());
-                // Se quiser ver o status no retorno JSON, descomente abaixo se tiver o getStatus()
                 // map.put("status", a.getStatus()); 
             } else if (obj instanceof Leito) {
                 Leito l = (Leito) obj;
@@ -106,7 +105,7 @@ public class TesteGeralController {
     @DeleteMapping("/estoque/excluir/{id}")
     public String deletarProduto(@PathVariable Long id) { prodRepo.deleteById(id); return "Produto excluído"; }
 
-    // ================== AMBULANCIAS (CORRIGIDO!) ==================
+    // ================== AMBULANCIAS (AGORA COM TIPO E MODELO) ==================
     @GetMapping("/ambulancias/listar")
     public List<Map<String, Object>> listarAmbu() { return ambuRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     
@@ -114,17 +113,21 @@ public class TesteGeralController {
     public Object criarAmbu(@RequestBody Map<String, Object> dados) {
         try {
             Ambulancia a = new Ambulancia();
+            // 1. PLACA
             if(dados.get("placa") != null) a.setPlaca((String) dados.get("placa"));
             
-            // --- CORREÇÃO AQUI ---
-            // O banco exige status. Se não vier no JSON, colocamos um padrão.
-            if(dados.get("status") != null) {
-                a.setStatus((String) dados.get("status"));
-            } else {
-                a.setStatus("DISPONIVEL"); // Valor padrão seguro
-            }
-            // ---------------------
-            
+            // 2. STATUS (Obrigatório)
+            if(dados.get("status") != null) a.setStatus((String) dados.get("status"));
+            else a.setStatus("DISPONIVEL"); 
+
+            // 3. TIPO (Obrigatório - Causa do Erro Atual)
+            if(dados.get("tipo") != null) a.setTipo((String) dados.get("tipo"));
+            else a.setTipo("UTI MOVEL"); // Valor Padrão
+
+            // 4. MODELO (Provável Próximo Erro - Já vamos prevenir)
+            if(dados.get("modelo") != null) a.setModelo((String) dados.get("modelo"));
+            else a.setModelo("Padrao");
+
             return simplificar(ambuRepo.save(a));
         } catch (Exception e) { return criarErro(e); }
     }
@@ -132,7 +135,7 @@ public class TesteGeralController {
     @DeleteMapping("/ambulancias/excluir/{id}")
     public String deletarAmbu(@PathVariable Long id) { ambuRepo.deleteById(id); return "Ambulância excluída"; }
 
-    // ================== FINANCEIRO (DESATIVADO PARA NÃO DAR ERRO) ==================
+    // ================== FINANCEIRO (AINDA DESATIVADO) ==================
     @GetMapping("/financeiro/listar")
     public List<Map<String, Object>> listarFin() { return finRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     
@@ -140,7 +143,7 @@ public class TesteGeralController {
     public Object criarFin(@RequestBody Map<String, Object> dados) {
         try {
             TransacaoFinanceira f = new TransacaoFinanceira();
-            // Mantendo comentado até você verificar os nomes dos campos na classe Java
+            // Campos comentados até confirmarmos os nomes na classe Java
             // if(dados.get("descricao") != null) f.setDescricao((String) dados.get("descricao"));
             // if(dados.get("valor") != null) f.setValor(Double.parseDouble(dados.get("valor").toString()));
             return simplificar(finRepo.save(f)); 
