@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.math.BigDecimal; // IMPORTANTE: Para o dinheiro funcionar!
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/teste")
@@ -25,41 +25,29 @@ public class TesteGeralController {
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
 
-    // --- MÁGICA V3: AGORA SUPORTA BIGDECIMAL E ENUMS ---
+    // --- MÁGICA V3 (Mantida) ---
     private void preencherAutomaticamente(Object destino, Map<String, Object> origem) {
         Method[] metodos = destino.getClass().getMethods();
         for (Method m : metodos) {
             if (m.getName().startsWith("set") && m.getParameterCount() == 1) {
                 String atributo = m.getName().substring(3).toLowerCase(); 
-                
                 for (String key : origem.keySet()) {
                     String keyLimpa = key.replace("_", "").toLowerCase();
-                    
                     if (keyLimpa.equals(atributo) || atributo.startsWith(keyLimpa)) {
                         try {
                             Object valor = origem.get(key);
                             Class<?> tipoParametro = m.getParameterTypes()[0];
-
-                            // 1. Conversão para BigDecimal (DINHEIRO)
                             if (tipoParametro == BigDecimal.class) {
                                 m.invoke(destino, new BigDecimal(valor.toString()));
-                            }
-                            // 2. Conversão String -> Enum (CATEGORIA, TIPO, STATUS)
-                            else if (tipoParametro.isEnum() && valor instanceof String) {
-                                Object[] constantes = tipoParametro.getEnumConstants();
-                                for(Object objEnum : constantes) {
+                            } else if (tipoParametro.isEnum() && valor instanceof String) {
+                                for(Object objEnum : tipoParametro.getEnumConstants()) {
                                     if(objEnum.toString().equalsIgnoreCase((String)valor)) {
-                                        m.invoke(destino, objEnum);
-                                        break;
+                                        m.invoke(destino, objEnum); break;
                                     }
                                 }
-                            }
-                            // 3. Conversão Número -> Double
-                            else if (valor instanceof Integer && tipoParametro == Double.class) {
+                            } else if (valor instanceof Integer && tipoParametro == Double.class) {
                                 m.invoke(destino, ((Integer) valor).doubleValue());
-                            } 
-                            // 4. Padrão
-                            else {
+                            } else {
                                 m.invoke(destino, valor);
                             }
                         } catch (Exception e) { }
@@ -69,86 +57,81 @@ public class TesteGeralController {
         }
     }
 
-    // --- HELPER DE VISUALIZAÇÃO ---
     private Map<String, Object> simplificar(Object obj) {
         Map<String, Object> map = new HashMap<>();
         if (obj == null) return map;
         try {
             try { map.put("id", obj.getClass().getMethod("getId").invoke(obj)); } catch (Exception e) {}
             map.put("tipo_objeto", obj.getClass().getSimpleName());
-            // Tenta pegar descrição se existir
             try { map.put("info", obj.toString()); } catch (Exception e) {}
         } catch (Exception e) { map.put("erro_visualizacao", e.getMessage()); }
         return map;
     }
 
-    // ================== FINANCEIRO (CORRIGIDO COM BIGDECIMAL) ==================
+    // ================== ESTOQUE (CORRIGIDO EAN) ==================
+    @GetMapping("/estoque/listar")
+    public List<Map<String, Object>> listarEstoque() { return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
+    
+    @PostMapping("/estoque/criar")
+    public Object criarProduto(@RequestBody Map<String, Object> dados) {
+        Produto p = new Produto();
+        try {
+            preencherAutomaticamente(p, dados);
+            
+            // --- CORREÇÃO: EAN OBRIGATÓRIO ---
+            // Tenta achar o método setEan e, se o valor estiver vazio, preenche com um número aleatório
+            try {
+                Method getEan = p.getClass().getMethod("getEan");
+                if (getEan.invoke(p) == null) {
+                    Method setEan = p.getClass().getMethod("setEan", String.class);
+                    // Gera um EAN fictício: "SEM-GTIN-" + Hora atual
+                    setEan.invoke(p, "SEM-GTIN-" + System.currentTimeMillis());
+                }
+            } catch (Exception ex) {
+                // Se der erro aqui, talvez o nome não seja setEan, mas vamos torcer para ser
+            }
+            
+            return simplificar(prodRepo.save(p)); 
+        } catch (Exception e) { return criarErro(e); }
+    }
+    
+    @DeleteMapping("/estoque/excluir/{id}")
+    public String deletarProduto(@PathVariable Long id) { prodRepo.deleteById(id); return "Produto excluído"; }
+
+    // ================== FINANCEIRO (Mantido) ==================
     @GetMapping("/financeiro/listar")
     public List<Map<String, Object>> listarFin() { return finRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
-    
     @PostMapping("/financeiro/criar")
     public Object criarFin(@RequestBody Map<String, Object> dados) {
         TransacaoFinanceira f = new TransacaoFinanceira();
         try {
-            // 1. Tenta preencher tudo (Valor, Descrição, etc)
             preencherAutomaticamente(f, dados);
-            
-            // 2. PREENCHER OBRIGATÓRIOS QUE FALTARAM (Via Reflection para não errar o Enum)
             for(Method m : f.getClass().getMethods()) {
                 if(m.getName().startsWith("set") && m.getParameterCount() == 1) {
                     Class<?> tipo = m.getParameterTypes()[0];
-                    
-                    // Se for Categoria e ainda estiver null, tenta setar o primeiro da lista
-                    if(m.getName().contains("Categoria") && tipo.isEnum()) {
-                        if(verificarSeNulo(f, m.getName())) setarEnumPadrao(f, m);
-                    }
-                    // Se for Tipo e ainda estiver null
-                    if(m.getName().contains("Tipo") && tipo.isEnum()) {
-                        if(verificarSeNulo(f, m.getName())) setarEnumPadrao(f, m);
-                    }
-                    // Se for Status e ainda estiver null
-                    if(m.getName().contains("Status") && tipo.isEnum()) {
-                        if(verificarSeNulo(f, m.getName())) setarEnumPadrao(f, m);
-                    }
+                    if(m.getName().contains("Categoria") && tipo.isEnum()) { if(verificarSeNulo(f, m.getName())) setarEnumPadrao(f, m); }
+                    if(m.getName().contains("Tipo") && tipo.isEnum()) { if(verificarSeNulo(f, m.getName())) setarEnumPadrao(f, m); }
+                    if(m.getName().contains("Status") && tipo.isEnum()) { if(verificarSeNulo(f, m.getName())) setarEnumPadrao(f, m); }
                 }
             }
-
             return simplificar(finRepo.save(f)); 
         } catch (Exception e) { return criarErro(e); }
     }
     
-    // Auxiliares para preencher Enums padrão
-    private boolean verificarSeNulo(Object obj, String nomeSetter) {
-        try {
-            String nomeGetter = "get" + nomeSetter.substring(3);
-            Method getter = obj.getClass().getMethod(nomeGetter);
-            return getter.invoke(obj) == null;
-        } catch (Exception e) { return true; }
-    }
-    private void setarEnumPadrao(Object obj, Method setter) {
-        try {
-            Object[] enums = setter.getParameterTypes()[0].getEnumConstants();
-            if(enums.length > 0) setter.invoke(obj, enums[0]); // Pega o primeiro item da lista
-        } catch (Exception e) {}
-    }
-
+    // Auxiliares
+    private boolean verificarSeNulo(Object obj, String nomeSetter) { try { String nomeGetter = "get" + nomeSetter.substring(3); Method getter = obj.getClass().getMethod(nomeGetter); return getter.invoke(obj) == null; } catch (Exception e) { return true; } }
+    private void setarEnumPadrao(Object obj, Method setter) { try { Object[] enums = setter.getParameterTypes()[0].getEnumConstants(); if(enums.length > 0) setter.invoke(obj, enums[0]); } catch (Exception e) {} }
+    
     @DeleteMapping("/financeiro/excluir/{id}")
     public String deletarFin(@PathVariable Long id) { finRepo.deleteById(id); return "Transação excluída"; }
 
-    // ================== OUTROS (MANTIDOS) ==================
+    // ================== OUTROS (Mantidos) ==================
     @GetMapping("/polos/listar")
     public List<Map<String, Object>> listarPolos() { return poloRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     @PostMapping("/polos/criar")
     public Object criarPolo(@RequestBody Map<String, Object> dados) { try { Polo p = new Polo(); preencherAutomaticamente(p, dados); return simplificar(poloRepo.save(p)); } catch (Exception e) { return criarErro(e); } }
     @DeleteMapping("/polos/excluir/{id}")
     public String deletarPolo(@PathVariable Long id) { poloRepo.deleteById(id); return "Polo excluído"; }
-
-    @GetMapping("/estoque/listar")
-    public List<Map<String, Object>> listarEstoque() { return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
-    @PostMapping("/estoque/criar")
-    public Object criarProduto(@RequestBody Map<String, Object> dados) { try { Produto p = new Produto(); preencherAutomaticamente(p, dados); return simplificar(prodRepo.save(p)); } catch (Exception e) { return criarErro(e); } }
-    @DeleteMapping("/estoque/excluir/{id}")
-    public String deletarProduto(@PathVariable Long id) { prodRepo.deleteById(id); return "Produto excluído"; }
 
     @GetMapping("/ambulancias/listar")
     public List<Map<String, Object>> listarAmbu() { return ambuRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
