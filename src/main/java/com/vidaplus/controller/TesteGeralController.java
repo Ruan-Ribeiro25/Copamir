@@ -4,6 +4,7 @@ import com.vidaplus.entity.*;
 import com.vidaplus.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.jdbc.core.JdbcTemplate; // IMPORTANTE: A Marreta
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,9 @@ public class TesteGeralController {
     @Autowired private LaboratorioRepository labRepo;  
     @Autowired private TransacaoFinanceiraRepository finRepo; 
     @Autowired private ProdutoRepository prodRepo;
+    
+    // FERRAMENTA DE SQL DIRETO
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     // --- MÁGICA V3 (Mantida) ---
     private void preencherAutomaticamente(Object destino, Map<String, Object> origem) {
@@ -68,7 +72,7 @@ public class TesteGeralController {
         return map;
     }
 
-    // ================== ESTOQUE (MODO INVESTIGAÇÃO) ==================
+    // ================== ESTOQUE (COM AUTOCURA DE BANCO) ==================
     @GetMapping("/estoque/listar")
     public List<Map<String, Object>> listarEstoque() { return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     
@@ -78,43 +82,41 @@ public class TesteGeralController {
         try {
             preencherAutomaticamente(p, dados);
             
-            // 1. Gera EAN se faltar
-            String codigoGerado = "GTIN-" + System.currentTimeMillis();
+            // Garante EAN
+            String eanGerado = "GTIN-" + System.currentTimeMillis();
             try {
                 Method getEan = p.getClass().getMethod("getEan");
                 if (getEan.invoke(p) == null) {
-                    p.getClass().getMethod("setEan", String.class).invoke(p, codigoGerado);
+                    p.getClass().getMethod("setEan", String.class).invoke(p, eanGerado);
                 }
             } catch (Exception ex) {}
 
-            // 2. TENTA PREENCHER O TAL 'CODIGO_BARRAS' NA FORÇA BRUTA
-            // Procura qualquer setter que pareça com CodigoBarras ou Codigo
-            boolean achouCodigoBarras = false;
-            for(Method m : p.getClass().getMethods()) {
-                String nome = m.getName().toLowerCase();
-                if(m.getName().startsWith("set") && (nome.contains("codigobarra") || nome.contains("codbarra"))) {
-                    try {
-                        m.invoke(p, codigoGerado); // Tenta jogar o mesmo código
-                        achouCodigoBarras = true;
-                    } catch (Exception e) {}
+            return simplificar(prodRepo.save(p)); 
+            
+        } catch (Exception e) {
+            String erroMsg = e.getMessage().toLowerCase();
+            
+            // --- DETECÇÃO DO PROBLEMA DO CÓDIGO DE BARRAS ---
+            if (erroMsg.contains("codigo_barras") && erroMsg.contains("default value")) {
+                try {
+                    // Tenta consertar o banco na hora: Torna a coluna opcional (NULLABLE)
+                    // Funciona para MySQL/MariaDB
+                    jdbcTemplate.execute("ALTER TABLE produtos MODIFY codigo_barras VARCHAR(255) NULL");
+                    
+                    // Tenta salvar de novo
+                    return simplificar(prodRepo.save(p));
+                    
+                } catch (Exception exSql) {
+                    // Se falhar o MODIFY, tenta UPDATE brute force para preencher os vazios
+                     try {
+                        jdbcTemplate.execute("UPDATE produtos SET codigo_barras = ean WHERE codigo_barras IS NULL OR codigo_barras = ''");
+                        return simplificar(prodRepo.save(p));
+                     } catch(Exception ex2) {
+                        return criarErro(ex2);
+                     }
                 }
             }
-
-            return simplificar(prodRepo.save(p)); 
-        } catch (Exception e) { 
-            // --- DETETIVE DE PRODUTO ---
-            Map<String, String> erro = new HashMap<>();
-            erro.put("status", "erro");
-            erro.put("mensagem", e.getMessage());
-            
-            // Lista os métodos para você ver se esqueceu de mapear a coluna no Java
-            List<String> metodos = new ArrayList<>();
-            for(Method m : p.getClass().getMethods()) {
-                if(m.getName().startsWith("set")) metodos.add(m.getName());
-            }
-            erro.put("debug_metodos_produto", metodos.toString());
-            
-            return erro;
+            return criarErro(e);
         }
     }
     
