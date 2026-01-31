@@ -68,7 +68,7 @@ public class TesteGeralController {
         return map;
     }
 
-    // ================== ESTOQUE (CORRIGIDO EAN) ==================
+    // ================== ESTOQUE (MODO INVESTIGAÇÃO) ==================
     @GetMapping("/estoque/listar")
     public List<Map<String, Object>> listarEstoque() { return prodRepo.findAll().stream().map(this::simplificar).collect(Collectors.toList()); }
     
@@ -78,21 +78,44 @@ public class TesteGeralController {
         try {
             preencherAutomaticamente(p, dados);
             
-            // --- CORREÇÃO: EAN OBRIGATÓRIO ---
-            // Tenta achar o método setEan e, se o valor estiver vazio, preenche com um número aleatório
+            // 1. Gera EAN se faltar
+            String codigoGerado = "GTIN-" + System.currentTimeMillis();
             try {
                 Method getEan = p.getClass().getMethod("getEan");
                 if (getEan.invoke(p) == null) {
-                    Method setEan = p.getClass().getMethod("setEan", String.class);
-                    // Gera um EAN fictício: "SEM-GTIN-" + Hora atual
-                    setEan.invoke(p, "SEM-GTIN-" + System.currentTimeMillis());
+                    p.getClass().getMethod("setEan", String.class).invoke(p, codigoGerado);
                 }
-            } catch (Exception ex) {
-                // Se der erro aqui, talvez o nome não seja setEan, mas vamos torcer para ser
+            } catch (Exception ex) {}
+
+            // 2. TENTA PREENCHER O TAL 'CODIGO_BARRAS' NA FORÇA BRUTA
+            // Procura qualquer setter que pareça com CodigoBarras ou Codigo
+            boolean achouCodigoBarras = false;
+            for(Method m : p.getClass().getMethods()) {
+                String nome = m.getName().toLowerCase();
+                if(m.getName().startsWith("set") && (nome.contains("codigobarra") || nome.contains("codbarra"))) {
+                    try {
+                        m.invoke(p, codigoGerado); // Tenta jogar o mesmo código
+                        achouCodigoBarras = true;
+                    } catch (Exception e) {}
+                }
             }
-            
+
             return simplificar(prodRepo.save(p)); 
-        } catch (Exception e) { return criarErro(e); }
+        } catch (Exception e) { 
+            // --- DETETIVE DE PRODUTO ---
+            Map<String, String> erro = new HashMap<>();
+            erro.put("status", "erro");
+            erro.put("mensagem", e.getMessage());
+            
+            // Lista os métodos para você ver se esqueceu de mapear a coluna no Java
+            List<String> metodos = new ArrayList<>();
+            for(Method m : p.getClass().getMethods()) {
+                if(m.getName().startsWith("set")) metodos.add(m.getName());
+            }
+            erro.put("debug_metodos_produto", metodos.toString());
+            
+            return erro;
+        }
     }
     
     @DeleteMapping("/estoque/excluir/{id}")
